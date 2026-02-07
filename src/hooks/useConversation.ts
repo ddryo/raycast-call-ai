@@ -253,8 +253,8 @@ export function useConversation() {
   }, []);
 
   // 新しいスレッドを作成
-  const createThread = useCallback(async () => {
-    if (isLoadingRef.current) return;
+  const createThread = useCallback(async (): Promise<string | undefined> => {
+    if (isLoadingRef.current) return undefined;
 
     const newThread = createNewThread();
     const updatedThreads = [newThread, ...threadsRef.current];
@@ -275,6 +275,7 @@ export function useConversation() {
         title: "スレッドの作成に失敗しました",
       });
     }
+    return newThread.id;
   }, []);
 
   // スレッドを切り替え（フォーカス連動・軽量版）

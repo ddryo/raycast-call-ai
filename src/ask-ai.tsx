@@ -96,6 +96,7 @@ export default function AskAI() {
     loadThreadMessages,
   } = useConversation();
   const [searchText, setSearchText] = useState("");
+  const [focusTarget, setFocusTarget] = useState<string | undefined>(undefined);
 
   /** SearchBar の Enter 押下時にメッセージを送信する */
   async function handleSend() {
@@ -143,8 +144,15 @@ export default function AskAI() {
     });
   }
 
+  /** 新しい会話を作成してフォーカスを移動する */
+  async function handleCreateThread() {
+    const newId = await createThread();
+    if (newId) setFocusTarget(newId);
+  }
+
   /** フォーカス変更 = スレッド切り替え（ref のみ、再レンダーなし） */
   function handleSelectionChange(threadId: string | null) {
+    if (focusTarget) setFocusTarget(undefined);
     if (threadId) {
       selectThread(threadId);
       loadThreadMessages(threadId);
@@ -159,6 +167,7 @@ export default function AskAI() {
       searchText={searchText}
       onSearchTextChange={setSearchText}
       filtering={false}
+      selectedItemId={focusTarget}
       onSelectionChange={handleSelectionChange}
     >
       {[...threads]
@@ -208,7 +217,7 @@ export default function AskAI() {
                   title="New Conversation"
                   icon={Icon.PlusCircle}
                   shortcut={{ modifiers: ["cmd"], key: "n" }}
-                  onAction={createThread}
+                  onAction={handleCreateThread}
                 />
                 <Action
                   title="Clear Conversation"
