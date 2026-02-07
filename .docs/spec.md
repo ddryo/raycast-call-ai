@@ -75,11 +75,17 @@ ask-ai/
 ask-ai.tsx（メインコマンド）
   ├── AskAI()                   … デフォルトエクスポート。List + Detail UI
   │     ├── SearchBar 入力 → handleSend() でメッセージ送信
+  │     │     └── isLoading 中は送信をガード（二重送信防止）
   │     ├── List.EmptyView      … 会話がない初期状態の案内表示
+  │     ├── handleClearConversation() … confirmAlert → clearMessages → 成功Toast
   │     └── ActionPanel
-  │           ├── Action "Send Message"      … Enter で送信
-  │           └── Action.Push "Multiline Input" (Cmd+L)
-  │                 └── MultiLineForm        … 複数行入力フォーム
+  │           ├── Action "Send Message"            … Enter で送信
+  │           ├── Action.CopyToClipboard "Copy Content" (Cmd+Shift+C)
+  │           │     └── 選択中メッセージの content をクリップボードにコピー
+  │           ├── Action.Push "Multiline Input" (Cmd+L)
+  │           │     └── MultiLineForm              … 複数行入力フォーム
+  │           └── Action "Clear Conversation" (Cmd+Shift+Backspace, Destructive)
+  │                 └── handleClearConversation() を呼び出し
   ├── MultiLineForm({ onSend }) … Form.TextArea + SubmitForm アクション
   │     └── 送信後 pop() でメインビューに戻る
   ├── ヘルパー関数
@@ -89,13 +95,25 @@ ask-ai.tsx（メインコマンド）
   │
   ├── useConversation（カスタムフック）
   │     ├── state: messages (Message[]), isLoading (boolean)
-  │     ├── sendMessage(content): ユーザーメッセージ追加 → API呼び出し → assistant応答追加 → 保存
+  │     ├── refs: messagesRef (最新messages参照), isLoadingRef (同期的ロック用)
+  │     ├── sendMessage(content):
+  │     │     1. isLoadingRef で同期的に二重送信チェック＆ロック
+  │     │     2. ユーザーメッセージ追加 → API呼び出し → assistant応答追加
+  │     │     3. 保存（失敗時 Toast 通知、state は維持）
+  │     │     4. エラー時は classifyError で分類し Toast 表示
+  │     │     5. finally で isLoadingRef / isLoading を解除
   │     ├── clearMessages(): ストレージ削除 + state リセット
   │     └── 起動時復元: loadMessages() で LocalStorage から復元（失敗時 Toast 通知）
+  │           └── finally で isLoadingRef / isLoading を false に設定
   │
   ├── openai.ts（API通信層）
   │     ├── createChatCompletion(): 全履歴を送信し応答を取得
-  │     └── classifyError(): エラー分類（auth/rate_limit/timeout/network/unknown）
+  │     └── classifyError(): エラー分類（判定順序）
+  │           1. APIConnectionTimeoutError → timeout
+  │           2. APIConnectionError → network
+  │           3. APIError (status 401) → auth
+  │           4. APIError (status 429) → rate_limit
+  │           5. その他 → unknown
   │
   └── conversation.ts（永続化層）
         ├── saveMessages(): LocalStorage に保存
@@ -114,17 +132,31 @@ ask-ai.tsx（メインコマンド）
 
 #### メッセージ送信フロー（SearchBar）
 1. SearchBar にテキスト入力 → Enter キー押下
-2. 入力テキストを取得し、SearchBar を空にする
-3. ユーザーメッセージを `messages` に追加 → `isLoading = true`
-4. OpenAI API に全会話履歴を送信（非ストリーミング）
-5. 応答を受信 → assistant メッセージを `messages` に追加 → `isLoading = false`
-6. LocalStorage に会話全体を保存（保存失敗時は Toast で通知、state は維持）
+2. `isLoadingRef` で同期的に二重送信チェック（送信中なら即 return）
+3. `isLoadingRef` をロックし、入力テキストを取得、SearchBar を空にする
+4. ユーザーメッセージを `messages` に追加 → `isLoading = true`
+5. OpenAI API に全会話履歴を送信（非ストリーミング）
+6. 応答を受信 → assistant メッセージを `messages` に追加
+7. LocalStorage に会話全体を保存（保存失敗時は Toast で通知、state は維持）
+8. エラー発生時 → `classifyError()` でエラー種別を判定し、Toast で適切なメッセージを表示
+9. finally で `isLoadingRef` と `isLoading` を解除
 
 #### メッセージ送信フロー（複数行入力）
 1. ActionPanel から `Multiline Input`（Cmd+L）を選択
 2. `Action.Push` で `MultiLineForm` を表示（Form.TextArea による複数行入力）
 3. テキスト入力後 Submit → `pop()` でメインビューに戻る
 4. 以降は SearchBar 送信フローの手順 3 以降と同じ
+
+#### 会話クリアフロー
+1. ActionPanel から `Clear Conversation`（Cmd+Shift+Backspace）を選択
+2. `confirmAlert` で確認ダイアログを表示（「会話をクリアしますか?」、Destructive スタイル）
+3. ユーザーが「クリア」を選択 → `clearMessages()` で LocalStorage 削除 + state リセット
+4. 成功 Toast（`Toast.Style.Success`、「会話をクリアしました」）を表示
+5. ユーザーがキャンセル → 何もせず終了
+
+#### メッセージコピー操作
+1. List 上で任意のメッセージを選択した状態で Cmd+Shift+C を押下
+2. `Action.CopyToClipboard` により、選択中メッセージの `content` がクリップボードにコピーされる
 
 #### 表示仕様
 - メッセージは**逆順表示**（最新メッセージが List の先頭に表示される）
