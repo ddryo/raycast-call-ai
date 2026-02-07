@@ -23,18 +23,18 @@ Raycast 上で OpenAI API を利用したチャットインターフェースを
 | FR-007 | 二重送信防止 | API 応答待ち中は入力をロックし、isLoading で状態を示す | Must | o |
 | FR-008 | 会話クリア | 現在の会話履歴を全削除する | Must | o |
 | FR-009 | メッセージコピー | 選択中メッセージの内容をクリップボードにコピーする | Should | o |
-| FR-010 | スレッド管理 | 複数の会話スレッドを作成・切替・削除する | Should | - |
-| FR-011 | スレッド一覧 | 保存済みスレッドをリスト表示し、選択して会話を再開する | Should | - |
-| FR-012 | 履歴上限管理 | トークン超過時に古いメッセージを切り捨てて送信する | Could | - |
+| FR-010 | スレッド管理 | 複数の会話スレッドを作成・切替・削除する | Should | o |
+| FR-011 | スレッド一覧 | 保存済みスレッドをリスト表示し、選択して会話を再開する | Should | o |
+| FR-012 | 履歴上限管理 | トークン超過時に古いメッセージを切り捨てて送信する | Could | o |
 
 **優先度**: Must（必須）/ Should（推奨）/ Could（任意）
 
 ### フェーズ分割
 
-| フェーズ | スコープ | 対応要件 |
-|----------|----------|----------|
-| Phase 1 | 単一会話での送受信・表示・保存 | FR-001 ~ FR-009 |
-| Phase 2 | 複数会話スレッド管理 | FR-010 ~ FR-012 |
+| フェーズ | スコープ | 対応要件 | 状態 |
+|----------|----------|----------|------|
+| Phase 1 | 単一会話での送受信・表示・保存 | FR-001 ~ FR-009 | 完了 |
+| Phase 2 | 複数会話スレッド管理 | FR-010 ~ FR-012 | 完了 |
 
 
 ## 3. 技術スタック
@@ -56,15 +56,15 @@ Raycast 上で OpenAI API を利用したチャットインターフェースを
 ```
 ask-ai/
 ├── src/
-│   ├── ask-ai.tsx          # メインコマンド（List + Detail UI）
+│   ├── ask-ai.tsx            # メインコマンド（List + Detail UI、ThreadList コンポーネント含む）
 │   ├── services/
-│   │   └── openai.ts       # OpenAI API 通信層
+│   │   └── openai.ts         # OpenAI API 通信層 + トークン推定・履歴トリミング
 │   ├── storage/
-│   │   └── conversation.ts # LocalStorage による永続化層
+│   │   └── conversation.ts   # LocalStorage による永続化層（メッセージ + スレッド管理）
 │   ├── hooks/
-│   │   └── useConversation.ts # 会話状態管理カスタムフック
+│   │   └── useConversation.ts # 会話・スレッド状態管理カスタムフック
 │   └── types/
-│       └── index.ts        # 型定義（Message, Thread）
+│       └── index.ts          # 型定義（Message, Thread, ApiError, Preferences）
 ├── package.json
 └── tsconfig.json
 ```
@@ -84,62 +84,119 @@ ask-ai.tsx（メインコマンド）
   │           │     └── 選択中メッセージの content をクリップボードにコピー
   │           ├── Action.Push "Multiline Input" (Cmd+L)
   │           │     └── MultiLineForm              … 複数行入力フォーム
+  │           ├── Action.Push "Conversation List" (Cmd+T)
+  │           │     └── ThreadList                 … スレッド一覧画面へ遷移
+  │           ├── Action "New Conversation" (Cmd+N)
+  │           │     └── createThread() で新規スレッドを作成
   │           └── Action "Clear Conversation" (Cmd+Shift+Backspace, Destructive)
   │                 └── handleClearConversation() を呼び出し
+  │
+  ├── ThreadList({ threads, currentThreadId, switchThread, deleteThread })
+  │     … スレッド一覧コンポーネント（Action.Push の遷移先）
+  │     ├── List で全スレッドを一覧表示
+  │     │     ├── 現在のスレッド: CheckCircle アイコン（Green）
+  │     │     └── その他のスレッド: Circle アイコン
+  │     ├── accessories に updatedAt を表示（formatDateTime 形式）
+  │     └── ActionPanel
+  │           ├── Action "Open Conversation"  … switchThread → pop() でメインに戻る
+  │           └── Action "Delete Conversation" (Ctrl+X, Destructive)
+  │                 └── confirmAlert → deleteThread → 成功Toast
+  │
   ├── MultiLineForm({ onSend }) … Form.TextArea + SubmitForm アクション
   │     └── 送信後 pop() でメインビューに戻る
+  │
   ├── ヘルパー関数
   │     ├── truncate()           … メッセージ短縮表示（60文字上限）
   │     ├── roleLabel()          … role → 表示名変換（User / AI / System）
-  │     └── formatTime()         … ISO 8601 → HH:MM 形式
+  │     ├── formatTime()         … ISO 8601 → HH:MM 形式
+  │     └── formatDateTime()     … ISO 8601 → "MMM D, HH:MM" 形式（スレッド一覧用）
   │
   ├── useConversation（カスタムフック）
-  │     ├── state: messages (Message[]), isLoading (boolean)
-  │     ├── refs: messagesRef (最新messages参照), isLoadingRef (同期的ロック用)
+  │     ├── state:
+  │     │     ├── messages (Message[])        … 現在のスレッドのメッセージ一覧
+  │     │     ├── isLoading (boolean)         … ローディング状態
+  │     │     ├── threads (Thread[])          … スレッド一覧
+  │     │     └── currentThreadId (string)    … 現在選択中のスレッドID
+  │     ├── refs:
+  │     │     ├── messagesRef       … 最新 messages 参照
+  │     │     ├── isLoadingRef      … 同期的ロック用
+  │     │     ├── threadsRef        … 最新 threads 参照
+  │     │     └── currentThreadIdRef … 最新 currentThreadId 参照
   │     ├── sendMessage(content):
   │     │     1. isLoadingRef で同期的に二重送信チェック＆ロック
-  │     │     2. ユーザーメッセージ追加 → API呼び出し → assistant応答追加
-  │     │     3. 保存（失敗時 Toast 通知、state は維持）
-  │     │     4. エラー時は classifyError で分類し Toast 表示
-  │     │     5. finally で isLoadingRef / isLoading を解除
-  │     ├── clearMessages(): ストレージ削除 + state リセット
-  │     └── 起動時復元: loadMessages() で LocalStorage から復元（失敗時 Toast 通知）
-  │           └── finally で isLoadingRef / isLoading を false に設定
+  │     │     2. ユーザーメッセージ追加
+  │     │     3. 初回送信時: スレッドタイトルを先頭30文字で自動生成
+  │     │     4. trimMessagesForContext() でトークン上限チェック
+  │     │        （超過時は古いメッセージを切り捨て + Toast 通知）
+  │     │     5. API呼び出し → assistant応答追加
+  │     │     6. スレッドの updatedAt を更新
+  │     │     7. 保存（失敗時 Toast 通知、state は維持）
+  │     │     8. エラー時は classifyError で分類し Toast 表示
+  │     │     9. finally で isLoadingRef / isLoading を解除
+  │     ├── clearMessages(): ストレージ削除 + state リセット（送信中は無効化）
+  │     ├── createThread(): 新規スレッド作成 + 切替（先頭に追加）
+  │     ├── switchThread(threadId): スレッド切替 + メッセージ復元
+  │     ├── deleteThread(threadId): スレッド削除
+  │     │     ├── 全スレッド削除時: 新規スレッドを自動作成
+  │     │     ├── 現在のスレッド削除時: 先頭スレッドに自動切替
+  │     │     └── 別のスレッド削除時: 現在のスレッドを維持
+  │     └── 起動時復元:
+  │           1. loadThreads() + loadCurrentThreadId() でスレッド情報を復元
+  │           2. threads が空の場合: デフォルトスレッドを自動作成
+  │           3. currentThreadId が threads 内に存在しない場合: 先頭にフォールバック
+  │           4. loadMessages() で選択中スレッドのメッセージを復元
+  │           5. 失敗時 Toast 通知、finally で isLoadingRef / isLoading を false に設定
   │
   ├── openai.ts（API通信層）
   │     ├── createChatCompletion(): 全履歴を送信し応答を取得
-  │     └── classifyError(): エラー分類（判定順序）
-  │           1. APIConnectionTimeoutError → timeout
-  │           2. APIConnectionError → network
-  │           3. APIError (status 401) → auth
-  │           4. APIError (status 429) → rate_limit
-  │           5. その他 → unknown
+  │     ├── classifyError(): エラー分類（判定順序）
+  │     │     1. APIConnectionTimeoutError → timeout
+  │     │     2. APIConnectionError → network
+  │     │     3. APIError (status 401) → auth
+  │     │     4. APIError (status 429) → rate_limit
+  │     │     5. その他 → unknown
+  │     ├── estimateTokens(): テキストのトークン数を簡易推定
+  │     │     └── 文字数 / 2 で概算（日英混在を想定）
+  │     └── trimMessagesForContext(): トークン上限を超える場合に古いメッセージを切り捨て
+  │           ├── モデルごとのコンテキスト上限を参照（MODEL_CONTEXT_LIMITS）
+  │           ├── 応答バッファ（RESPONSE_BUFFER = 4096）を差し引き
+  │           ├── system メッセージは常に保持
+  │           └── 最新のユーザーメッセージを必ず保持し、古い順にスキップ
   │
   └── conversation.ts（永続化層）
-        ├── saveMessages(): LocalStorage に保存
-        ├── loadMessages(): LocalStorage から復元
-        ├── clearMessages(): LocalStorage から削除
-        └── DEFAULT_THREAD_ID: Phase 1 用の固定スレッドID定数
+        ├── saveMessages(): LocalStorage にメッセージ配列を保存
+        ├── loadMessages(): LocalStorage からメッセージ配列を復元
+        ├── clearMessages(): LocalStorage からメッセージを削除
+        ├── saveThreads(): LocalStorage にスレッド一覧を保存
+        ├── loadThreads(): LocalStorage からスレッド一覧を復元
+        ├── saveCurrentThreadId(): LocalStorage に現在のスレッドIDを保存
+        ├── loadCurrentThreadId(): LocalStorage から現在のスレッドIDを復元
+        └── DEFAULT_THREAD_ID: デフォルトスレッドID定数（"default"）
 ```
 
 ### UI フロー
 
 #### 起動フロー
 1. コマンド起動 → `useConversation` が `isLoading = true` で初期化
-2. `loadMessages(DEFAULT_THREAD_ID)` で LocalStorage から会話履歴を復元
-3. 復元成功 → `messages` に反映、`isLoading = false` → List に逆順（最新が上）で表示
-4. 復元失敗 → Toast でエラー通知し、空の会話として開始
+2. `loadThreads()` と `loadCurrentThreadId()` でスレッド情報を復元
+3. スレッドが0件の場合 → デフォルトスレッドを自動作成し永続化
+4. `currentThreadId` が存在しない or スレッド一覧に該当がない場合 → 先頭スレッドにフォールバックし永続化
+5. `loadMessages(currentThreadId)` で選択中スレッドの会話履歴を復元
+6. 復元成功 → `messages` に反映、`isLoading = false` → List に逆順（最新が上）で表示
+7. 復元失敗 → Toast でエラー通知し、空の会話として開始
 
 #### メッセージ送信フロー（SearchBar）
 1. SearchBar にテキスト入力 → Enter キー押下
 2. `isLoadingRef` で同期的に二重送信チェック（送信中なら即 return）
 3. `isLoadingRef` をロックし、入力テキストを取得、SearchBar を空にする
 4. ユーザーメッセージを `messages` に追加 → `isLoading = true`
-5. OpenAI API に全会話履歴を送信（非ストリーミング）
-6. 応答を受信 → assistant メッセージを `messages` に追加
-7. LocalStorage に会話全体を保存（保存失敗時は Toast で通知、state は維持）
-8. エラー発生時 → `classifyError()` でエラー種別を判定し、Toast で適切なメッセージを表示
-9. finally で `isLoadingRef` と `isLoading` を解除
+5. 初回送信時（既存メッセージ 0 件）: スレッドタイトルを先頭30文字で自動生成し保存
+6. `trimMessagesForContext()` でトークン上限チェック（超過時は古いメッセージを切り捨て + Toast 通知）
+7. OpenAI API にトリミング済み会話履歴を送信（非ストリーミング）
+8. 応答を受信 → assistant メッセージを `messages` に追加、スレッドの `updatedAt` を更新
+9. LocalStorage に会話全体 + スレッド一覧を保存（保存失敗時は Toast で通知、state は維持）
+10. エラー発生時 → `classifyError()` でエラー種別を判定し、Toast で適切なメッセージを表示
+11. finally で `isLoadingRef` と `isLoading` を解除
 
 #### メッセージ送信フロー（複数行入力）
 1. ActionPanel から `Multiline Input`（Cmd+L）を選択
@@ -157,6 +214,39 @@ ask-ai.tsx（メインコマンド）
 #### メッセージコピー操作
 1. List 上で任意のメッセージを選択した状態で Cmd+Shift+C を押下
 2. `Action.CopyToClipboard` により、選択中メッセージの `content` がクリップボードにコピーされる
+
+#### スレッド作成フロー
+1. ActionPanel から `New Conversation`（Cmd+N）を選択
+2. `createThread()` が呼び出され、新しい Thread オブジェクトを生成（UUID v4、タイトル「新しい会話」）
+3. スレッド一覧の先頭に追加し、`currentThreadId` を新スレッドに切替
+4. メッセージを空にリセットし、LocalStorage にスレッド一覧と currentThreadId を保存
+
+#### スレッド一覧・切替フロー
+1. ActionPanel から `Conversation List`（Cmd+T）を選択
+2. `Action.Push` で `ThreadList` コンポーネントに遷移
+3. 全スレッドを List 表示（現在のスレッドは CheckCircle + Green、その他は Circle アイコン）
+4. accessories にスレッドの更新日時（formatDateTime 形式）を表示
+5. スレッドを選択（Enter）→ `switchThread()` で切替 + `pop()` でメインビューに戻る
+6. 切替時: `isLoading = true` → `loadMessages()` でスレッドのメッセージを復元 → `isLoading = false`
+
+#### スレッド削除フロー
+1. `ThreadList` 上で対象スレッドを選択し、`Delete Conversation`（Ctrl+X）を選択
+2. `confirmAlert` で確認ダイアログを表示（「スレッドを削除しますか?」、Destructive スタイル）
+3. ユーザーが「削除」を選択 → `deleteThread()` を実行
+   - メッセージを LocalStorage から削除
+   - 全スレッドが削除された場合: 新規スレッドを自動作成し切替
+   - 現在のスレッドが削除された場合: 残りの先頭スレッドに自動切替 + メッセージ復元
+   - 別のスレッドが削除された場合: 現在のスレッドを維持
+4. 成功 Toast（`Toast.Style.Success`、「スレッドを削除しました」）を表示
+5. ユーザーがキャンセル → 何もせず終了
+
+#### 履歴上限管理フロー
+1. `sendMessage()` 内で API 呼び出し前に `trimMessagesForContext()` を実行
+2. モデルごとのコンテキスト上限（MODEL_CONTEXT_LIMITS）から応答バッファ（4096トークン）を差し引いた上限値を算出
+3. `estimateTokens()` でメッセージ配列の合計トークン数を簡易推定（文字数 / 2）
+4. 上限以内 → 全メッセージをそのまま送信
+5. 上限超過 → system メッセージと最新ユーザーメッセージを必ず保持し、古い非 system メッセージを新しい順に上限内で追加
+6. トリミングが発生した場合 → Toast（`Toast.Style.Animated`、「古いメッセージを一部省略して送信しました」）を表示
 
 #### 表示仕様
 - メッセージは**逆順表示**（最新メッセージが List の先頭に表示される）
@@ -176,11 +266,11 @@ ask-ai.tsx（メインコマンド）
 | モデル | `gpt-4o-mini`（初期設定） |
 | ストリーミング | 非対応（`stream: false`） |
 | 認証 | Preferences API で取得した API キーを Authorization ヘッダに設定 |
-| 送信内容 | 会話の全 Message 配列を `messages` パラメータに渡す |
+| 送信内容 | 会話の Message 配列を `messages` パラメータに渡す（トークン上限超過時は `trimMessagesForContext()` で古いメッセージを切り捨て） |
 
 ### データモデル
 
-Phase 2（スレッド管理）を前提に、初期段階から threadId を含む設計とする。
+全 Message は所属する Thread の threadId を保持し、スレッド単位で管理される。
 
 #### Message
 
@@ -192,24 +282,24 @@ Phase 2（スレッド管理）を前提に、初期段階から threadId を含
 | content | string | メッセージ本文 |
 | createdAt | string | 作成日時（ISO 8601） |
 
-#### Thread（Phase 2 で使用）
+#### Thread
 
 | フィールド | 型 | 説明 |
 |----------|------|------|
-| id | string | スレッド固有ID（UUID v4） |
-| title | string | スレッド名（先頭メッセージから自動生成、または手動設定） |
+| id | string | スレッド固有ID（UUID v4、またはデフォルトスレッドの場合 `"default"`） |
+| title | string | スレッド名（初期値「新しい会話」、初回メッセージ送信時に先頭30文字で自動生成） |
 | createdAt | string | 作成日時（ISO 8601） |
-| updatedAt | string | 最終更新日時（ISO 8601） |
+| updatedAt | string | 最終更新日時（ISO 8601、メッセージ送受信のたびに更新） |
 
 ### LocalStorage キー設計
 
 | キー | 値の型 | 説明 |
 |------|--------|------|
 | `ask-ai:messages:{threadId}` | JSON string（Message[]） | スレッドごとのメッセージ配列 |
-| `ask-ai:threads` | JSON string（Thread[]） | スレッド一覧（Phase 2） |
-| `ask-ai:current-thread` | string | 現在選択中のスレッドID（Phase 2） |
+| `ask-ai:threads` | JSON string（Thread[]） | スレッド一覧 |
+| `ask-ai:current-thread` | string | 現在選択中のスレッドID |
 
-Phase 1 では固定のデフォルト threadId（`"default"`）を使用する。
+初回起動時はデフォルトスレッド（ID: `"default"`）が自動作成される。
 
 ### Preferences 設定
 
