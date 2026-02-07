@@ -93,7 +93,7 @@ function ThreadList({
 }: {
   threads: Thread[];
   currentThreadId: string;
-  switchThread: (threadId: string) => Promise<void>;
+  switchThread: (threadId: string) => Promise<boolean>;
   deleteThread: (threadId: string) => Promise<void>;
 }) {
   const { pop } = useNavigation();
