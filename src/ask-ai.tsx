@@ -10,35 +10,9 @@ import {
   Toast,
   Icon,
   Alert,
-  Color,
 } from "@raycast/api";
 import { useConversation } from "./hooks/useConversation";
-import { Message, Thread } from "./types";
-
-/** メッセージのプレビューテキストを生成する（短縮表示用） */
-function truncate(text: string, maxLength = 60): string {
-  const singleLine = text.replace(/\n/g, " ");
-  if (singleLine.length <= maxLength) return singleLine;
-  return singleLine.slice(0, maxLength) + "...";
-}
-
-/** ロール表示名を返す */
-function roleLabel(role: Message["role"]): string {
-  switch (role) {
-    case "user":
-      return "User";
-    case "assistant":
-      return "AI";
-    case "system":
-      return "System";
-  }
-}
-
-/** 時刻を HH:MM 形式でフォーマットする */
-function formatTime(isoString: string): string {
-  const date = new Date(isoString);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
+import { Message } from "./types";
 
 /** 日時を読みやすい形式でフォーマットする */
 function formatDateTime(isoString: string): string {
@@ -49,6 +23,31 @@ function formatDateTime(isoString: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+/** 会話メッセージを Markdown テキストに変換する */
+function buildConversationMarkdown(messages: Message[] | undefined): string {
+  if (!messages || messages.length === 0) {
+    return "*メッセージを入力して会話を始めましょう*";
+  }
+  return [...messages]
+    .reverse()
+    .map((msg) => {
+      const role = msg.role === "user" ? "**You**" : "**AI**";
+      return `${role}\n\n${msg.content}`;
+    })
+    .join("\n\n---\n\n");
+}
+
+/** 最後の AI レスポンスを取得する */
+function getLastAssistantMessage(
+  messages: Message[] | undefined,
+): string | undefined {
+  if (!messages) return undefined;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "assistant") return messages[i].content;
+  }
+  return undefined;
 }
 
 /** 複数行テキスト入力フォーム */
@@ -84,87 +83,17 @@ function MultiLineForm({
   );
 }
 
-/** スレッド一覧コンポーネント */
-function ThreadList({
-  threads,
-  currentThreadId,
-  switchThread,
-  deleteThread,
-}: {
-  threads: Thread[];
-  currentThreadId: string;
-  switchThread: (threadId: string) => Promise<boolean>;
-  deleteThread: (threadId: string) => Promise<void>;
-}) {
-  const { pop } = useNavigation();
-
-  async function handleSelect(threadId: string) {
-    const success = await switchThread(threadId);
-    if (success) pop();
-  }
-
-  async function handleDelete(threadId: string) {
-    const confirmed = await confirmAlert({
-      title: "スレッドを削除しますか?",
-      message: "この操作は取り消せません。",
-      primaryAction: {
-        title: "削除",
-        style: Alert.ActionStyle.Destructive,
-      },
-    });
-    if (!confirmed) return;
-    await deleteThread(threadId);
-    await showToast({
-      style: Toast.Style.Success,
-      title: "スレッドを削除しました",
-    });
-  }
-
-  return (
-    <List navigationTitle="会話一覧">
-      {threads.map((thread) => (
-        <List.Item
-          key={thread.id}
-          title={thread.title}
-          icon={
-            thread.id === currentThreadId
-              ? { source: Icon.CheckCircle, tintColor: Color.Green }
-              : Icon.Circle
-          }
-          accessories={[{ text: formatDateTime(thread.updatedAt) }]}
-          actions={
-            <ActionPanel>
-              <Action
-                title="Open Conversation"
-                icon={Icon.ArrowRight}
-                onAction={() => handleSelect(thread.id)}
-              />
-              <Action
-                title="Delete Conversation"
-                icon={Icon.Trash}
-                style={Action.Style.Destructive}
-                shortcut={{ modifiers: ["ctrl"], key: "x" }}
-                onAction={() => handleDelete(thread.id)}
-              />
-            </ActionPanel>
-          }
-        />
-      ))}
-    </List>
-  );
-}
-
 export default function AskAI() {
   const {
-    messages,
     isLoading,
     sendMessage,
     clearMessages,
     createThread,
     threads,
-    currentThreadId,
-    switchThread,
     deleteThread,
+    messageCache,
+    selectThread,
+    loadThreadMessages,
   } = useConversation();
   const [searchText, setSearchText] = useState("");
 
@@ -195,80 +124,85 @@ export default function AskAI() {
     });
   }
 
-  const threadListTarget = (
-    <ThreadList
-      threads={threads}
-      currentThreadId={currentThreadId}
-      switchThread={switchThread}
-      deleteThread={deleteThread}
-    />
-  );
+  /** スレッド削除（確認ダイアログ付き） */
+  async function handleDeleteThread(threadId: string) {
+    if (isLoading) return;
+    const confirmed = await confirmAlert({
+      title: "スレッドを削除しますか?",
+      message: "この操作は取り消せません。",
+      primaryAction: {
+        title: "削除",
+        style: Alert.ActionStyle.Destructive,
+      },
+    });
+    if (!confirmed) return;
+    await deleteThread(threadId);
+    await showToast({
+      style: Toast.Style.Success,
+      title: "スレッドを削除しました",
+    });
+  }
 
-  // 最新メッセージが上に来るように逆順で表示
-  const reversedMessages = [...messages].reverse();
+  /** フォーカス変更 = スレッド切り替え（ref のみ、再レンダーなし） */
+  function handleSelectionChange(threadId: string | null) {
+    if (threadId) {
+      selectThread(threadId);
+      loadThreadMessages(threadId);
+    }
+  }
 
   return (
     <List
-      isShowingDetail={messages.length > 0}
+      isShowingDetail
       isLoading={isLoading}
       searchBarPlaceholder="AI に質問を入力..."
       searchText={searchText}
       onSearchTextChange={setSearchText}
       filtering={false}
+      onSelectionChange={handleSelectionChange}
     >
-      {reversedMessages.length === 0 ? (
-        <List.EmptyView
-          title="Ask AI"
-          description="メッセージを入力して Enter で送信"
-          actions={
-            <ActionPanel>
-              <Action title="Send Message" onAction={handleSend} />
-              <Action.Push
-                title="Multiline Input"
-                shortcut={{ modifiers: ["cmd"], key: "l" }}
-                target={<MultiLineForm onSend={sendMessage} />}
-              />
-              <Action.Push
-                title="Conversation List"
-                icon={Icon.List}
-                shortcut={{ modifiers: ["cmd"], key: "t" }}
-                target={threadListTarget}
-              />
-              <Action
-                title="New Conversation"
-                icon={Icon.PlusCircle}
-                shortcut={{ modifiers: ["cmd"], key: "n" }}
-                onAction={createThread}
-              />
-            </ActionPanel>
-          }
-        />
-      ) : (
-        reversedMessages.map((message) => (
+      {[...threads]
+        .sort(
+          (a, b) =>
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        )
+        .map((thread) => {
+        const cachedMessages = messageCache[thread.id];
+        const msgCount = cachedMessages ? cachedMessages.length : 0;
+        const lastResponse = getLastAssistantMessage(cachedMessages);
+
+        return (
           <List.Item
-            key={message.id}
-            title={roleLabel(message.role)}
-            subtitle={truncate(message.content)}
-            accessories={[{ text: formatTime(message.createdAt) }]}
-            detail={<List.Item.Detail markdown={message.content} />}
+            key={thread.id}
+            id={thread.id}
+            title={thread.title}
+            subtitle={msgCount > 0 ? `${msgCount} messages` : undefined}
+            icon={Icon.Bubble}
+            accessories={[{ text: formatDateTime(thread.updatedAt) }]}
+            detail={
+              <List.Item.Detail
+                markdown={buildConversationMarkdown(cachedMessages)}
+              />
+            }
             actions={
               <ActionPanel>
-                <Action title="Send Message" onAction={handleSend} />
-                <Action.CopyToClipboard
-                  title="Copy Content"
-                  content={message.content}
-                  shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+                <Action
+                  title="Send Message"
+                  icon={Icon.Message}
+                  onAction={handleSend}
                 />
+                {lastResponse && (
+                  <Action.CopyToClipboard
+                    title="Copy Last Response"
+                    content={lastResponse}
+                    shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+                  />
+                )}
                 <Action.Push
                   title="Multiline Input"
+                  icon={Icon.TextDocument}
                   shortcut={{ modifiers: ["cmd"], key: "l" }}
                   target={<MultiLineForm onSend={sendMessage} />}
-                />
-                <Action.Push
-                  title="Conversation List"
-                  icon={Icon.List}
-                  shortcut={{ modifiers: ["cmd"], key: "t" }}
-                  target={threadListTarget}
                 />
                 <Action
                   title="New Conversation"
@@ -278,16 +212,22 @@ export default function AskAI() {
                 />
                 <Action
                   title="Clear Conversation"
-                  icon={Icon.Trash}
-                  style={Action.Style.Destructive}
+                  icon={Icon.XMarkCircle}
                   shortcut={{ modifiers: ["cmd", "shift"], key: "backspace" }}
                   onAction={handleClearConversation}
+                />
+                <Action
+                  title="Delete Conversation"
+                  icon={Icon.Trash}
+                  style={Action.Style.Destructive}
+                  shortcut={{ modifiers: ["ctrl"], key: "x" }}
+                  onAction={() => handleDeleteThread(thread.id)}
                 />
               </ActionPanel>
             }
           />
-        ))
-      )}
+        );
+      })}
     </List>
   );
 }

@@ -46,10 +46,26 @@ export function useConversation() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [currentThreadId, setCurrentThreadId] =
     useState<string>(DEFAULT_THREAD_ID);
+  const [messageCache, setMessageCache] = useState<Record<string, Message[]>>(
+    {},
+  );
   const messagesRef = useRef<Message[]>([]);
   const isLoadingRef = useRef(true); // 初期値 true（復元中のため）
   const threadsRef = useRef<Thread[]>([]);
   const currentThreadIdRef = useRef<string>(DEFAULT_THREAD_ID);
+  const messageCacheRef = useRef<Record<string, Message[]>>({});
+
+  /** キャッシュを更新してUIに反映する */
+  function updateCache(threadId: string, msgs: Message[]) {
+    messageCacheRef.current[threadId] = msgs;
+    setMessageCache({ ...messageCacheRef.current });
+  }
+
+  /** キャッシュからスレッドを削除する */
+  function removeFromCache(threadId: string) {
+    delete messageCacheRef.current[threadId];
+    setMessageCache({ ...messageCacheRef.current });
+  }
 
   // messagesRef を常に最新に保つ
   useEffect(() => {
@@ -91,12 +107,14 @@ export function useConversation() {
           await saveCurrentThreadId(restoredCurrentId);
         }
 
+        currentThreadIdRef.current = restoredCurrentId;
         setThreads(restoredThreads);
         setCurrentThreadId(restoredCurrentId);
 
         // 選択中スレッドのメッセージを復元
         const restoredMessages = await loadMessages(restoredCurrentId);
         setMessages(restoredMessages);
+        updateCache(restoredCurrentId, restoredMessages);
       } catch {
         await showToast({
           style: Toast.Style.Failure,
@@ -128,7 +146,10 @@ export function useConversation() {
 
     // useRef で最新の messages を参照
     const nextMessages = [...messagesRef.current, userMessage];
-    setMessages(nextMessages);
+    updateCache(threadId, nextMessages);
+    if (currentThreadIdRef.current === threadId) {
+      setMessages(nextMessages);
+    }
     setIsLoading(true);
 
     // スレッドタイトルの自動生成: 初回送信時（既存メッセージが0件のとき）
@@ -186,7 +207,10 @@ export function useConversation() {
       };
 
       const finalMessages = [...nextMessages, assistantMessage];
-      setMessages(finalMessages);
+      updateCache(threadId, finalMessages);
+      if (currentThreadIdRef.current === threadId) {
+        setMessages(finalMessages);
+      }
 
       // スレッドの updatedAt を更新
       const updatedThreads = threadsRef.current.map((t) =>
@@ -224,6 +248,7 @@ export function useConversation() {
     if (isLoadingRef.current) return;
     messagesRef.current = [];
     setMessages([]);
+    updateCache(currentThreadIdRef.current, []);
     await clearStorageMessages(currentThreadIdRef.current);
   }, []);
 
@@ -234,10 +259,12 @@ export function useConversation() {
     const newThread = createNewThread();
     const updatedThreads = [newThread, ...threadsRef.current];
 
+    currentThreadIdRef.current = newThread.id;
+    messagesRef.current = [];
     setThreads(updatedThreads);
     setCurrentThreadId(newThread.id);
-    messagesRef.current = [];
     setMessages([]);
+    updateCache(newThread.id, []);
 
     try {
       await saveThreads(updatedThreads);
@@ -250,38 +277,33 @@ export function useConversation() {
     }
   }, []);
 
-  // スレッドを切り替え（成功時 true を返す）
-  const switchThread = useCallback(
-    async (threadId: string): Promise<boolean> => {
-      if (isLoadingRef.current) return false;
+  // スレッドを切り替え（フォーカス連動・軽量版）
+  const switchThread = useCallback(async (threadId: string): Promise<void> => {
+    if (currentThreadIdRef.current === threadId) return;
 
-      // 現在のスレッドと同じなら何もしない
-      if (currentThreadIdRef.current === threadId) return false;
+    currentThreadIdRef.current = threadId;
+    setCurrentThreadId(threadId);
 
-      isLoadingRef.current = true;
-      setIsLoading(true);
-
+    // キャッシュからメッセージを取得、なければストレージからロード
+    let msgs = messageCacheRef.current[threadId];
+    if (msgs === undefined) {
       try {
-        setCurrentThreadId(threadId);
-        await saveCurrentThreadId(threadId);
-
-        const restoredMessages = await loadMessages(threadId);
-        messagesRef.current = restoredMessages;
-        setMessages(restoredMessages);
-        return true;
+        msgs = await loadMessages(threadId);
+        updateCache(threadId, msgs);
       } catch {
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "会話の復元に失敗しました",
-        });
-        return false;
-      } finally {
-        isLoadingRef.current = false;
-        setIsLoading(false);
+        msgs = [];
       }
-    },
-    [],
-  );
+    }
+
+    // 高速切り替え中に追い越されていないか確認
+    if (currentThreadIdRef.current === threadId) {
+      messagesRef.current = msgs;
+      setMessages(msgs);
+    }
+
+    // バックグラウンドで永続化
+    saveCurrentThreadId(threadId).catch(() => {});
+  }, []);
 
   // スレッドを削除
   const deleteThread = useCallback(async (threadId: string) => {
@@ -290,7 +312,8 @@ export function useConversation() {
     const currentThreads = threadsRef.current;
     const remaining = currentThreads.filter((t) => t.id !== threadId);
 
-    // メッセージを LocalStorage から削除
+    // メッセージをキャッシュと LocalStorage から削除
+    removeFromCache(threadId);
     await clearStorageMessages(threadId);
 
     if (remaining.length === 0) {
@@ -298,10 +321,12 @@ export function useConversation() {
       const newThread = createNewThread();
       const newThreads = [newThread];
 
+      currentThreadIdRef.current = newThread.id;
+      messagesRef.current = [];
       setThreads(newThreads);
       setCurrentThreadId(newThread.id);
-      messagesRef.current = [];
       setMessages([]);
+      updateCache(newThread.id, []);
 
       try {
         await saveThreads(newThreads);
@@ -316,6 +341,7 @@ export function useConversation() {
       // 現在のスレッドを削除した場合: 最新のスレッドに切替
       const nextThread = remaining[0];
 
+      currentThreadIdRef.current = nextThread.id;
       setThreads(remaining);
       setCurrentThreadId(nextThread.id);
 
@@ -326,6 +352,7 @@ export function useConversation() {
         const restoredMessages = await loadMessages(nextThread.id);
         messagesRef.current = restoredMessages;
         setMessages(restoredMessages);
+        updateCache(nextThread.id, restoredMessages);
       } catch {
         await showToast({
           style: Toast.Style.Failure,
@@ -347,6 +374,27 @@ export function useConversation() {
     }
   }, []);
 
+  // フォーカス変更時の軽量切り替え（ref のみ更新、再レンダーなし）
+  const selectThread = useCallback((threadId: string) => {
+    currentThreadIdRef.current = threadId;
+    messagesRef.current = messageCacheRef.current[threadId] ?? [];
+  }, []);
+
+  // フォーカス中のスレッドのメッセージをオンデマンドでロード
+  const loadThreadMessages = useCallback(async (threadId: string) => {
+    if (messageCacheRef.current[threadId] !== undefined) return;
+    try {
+      const msgs = await loadMessages(threadId);
+      updateCache(threadId, msgs);
+      // ロード完了時にまだ同じスレッドにいれば messagesRef を同期
+      if (currentThreadIdRef.current === threadId) {
+        messagesRef.current = msgs;
+      }
+    } catch {
+      // サイレント失敗（Detail に空表示）
+    }
+  }, []);
+
   return {
     messages,
     isLoading,
@@ -355,7 +403,9 @@ export function useConversation() {
     sendMessage,
     clearMessages: clearConversation,
     createThread,
-    switchThread,
     deleteThread,
+    messageCache,
+    selectThread,
+    loadThreadMessages,
   };
 }
