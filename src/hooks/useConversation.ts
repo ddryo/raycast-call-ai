@@ -83,39 +83,35 @@ export function useConversation() {
     currentThreadIdRef.current = currentThreadId;
   }, [currentThreadId]);
 
-  // マウント時にスレッド一覧と会話を復元
+  // マウント時にスレッド一覧を復元し、新しい会話を作成して開始
   useEffect(() => {
     (async () => {
       try {
-        let restoredThreads = await loadThreads();
-        let restoredCurrentId = await loadCurrentThreadId();
+        const restoredThreads = await loadThreads();
 
-        // threads が空の場合: デフォルトスレッドを自動作成
-        if (restoredThreads.length === 0) {
-          const defaultThread = createDefaultThread();
-          restoredThreads = [defaultThread];
-          restoredCurrentId = defaultThread.id;
-          await saveThreads(restoredThreads);
-          await saveCurrentThreadId(restoredCurrentId);
+        // 新しいスレッドを作成して先頭に追加
+        const newThread = createNewThread();
+        const allThreads = [newThread, ...restoredThreads];
+
+        currentThreadIdRef.current = newThread.id;
+        messagesRef.current = [];
+        setThreads(allThreads);
+        setCurrentThreadId(newThread.id);
+        setMessages([]);
+        updateCache(newThread.id, []);
+
+        // 既存スレッドのキャッシュを復元
+        for (const thread of restoredThreads) {
+          try {
+            const msgs = await loadMessages(thread.id);
+            updateCache(thread.id, msgs);
+          } catch {
+            // サイレント失敗
+          }
         }
 
-        // currentThreadId が threads 内に存在しない場合: 先頭スレッドにフォールバック
-        if (
-          !restoredCurrentId ||
-          !restoredThreads.some((t) => t.id === restoredCurrentId)
-        ) {
-          restoredCurrentId = restoredThreads[0].id;
-          await saveCurrentThreadId(restoredCurrentId);
-        }
-
-        currentThreadIdRef.current = restoredCurrentId;
-        setThreads(restoredThreads);
-        setCurrentThreadId(restoredCurrentId);
-
-        // 選択中スレッドのメッセージを復元
-        const restoredMessages = await loadMessages(restoredCurrentId);
-        setMessages(restoredMessages);
-        updateCache(restoredCurrentId, restoredMessages);
+        await saveThreads(allThreads);
+        await saveCurrentThreadId(newThread.id);
       } catch {
         await showToast({
           style: Toast.Style.Failure,
