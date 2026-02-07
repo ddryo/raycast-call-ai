@@ -250,34 +250,37 @@ export function useConversation() {
   }, []);
 
   // スレッドを切り替え（成功時 true を返す）
-  const switchThread = useCallback(async (threadId: string): Promise<boolean> => {
-    if (isLoadingRef.current) return false;
+  const switchThread = useCallback(
+    async (threadId: string): Promise<boolean> => {
+      if (isLoadingRef.current) return false;
 
-    // 現在のスレッドと同じなら何もしない
-    if (currentThreadIdRef.current === threadId) return false;
+      // 現在のスレッドと同じなら何もしない
+      if (currentThreadIdRef.current === threadId) return false;
 
-    isLoadingRef.current = true;
-    setIsLoading(true);
+      isLoadingRef.current = true;
+      setIsLoading(true);
 
-    try {
-      setCurrentThreadId(threadId);
-      await saveCurrentThreadId(threadId);
+      try {
+        setCurrentThreadId(threadId);
+        await saveCurrentThreadId(threadId);
 
-      const restoredMessages = await loadMessages(threadId);
-      messagesRef.current = restoredMessages;
-      setMessages(restoredMessages);
-      return true;
-    } catch {
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "会話の復元に失敗しました",
-      });
-      return false;
-    } finally {
-      isLoadingRef.current = false;
-      setIsLoading(false);
-    }
-  }, []);
+        const restoredMessages = await loadMessages(threadId);
+        messagesRef.current = restoredMessages;
+        setMessages(restoredMessages);
+        return true;
+      } catch {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "会話の復元に失敗しました",
+        });
+        return false;
+      } finally {
+        isLoadingRef.current = false;
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
 
   // スレッドを削除
   const deleteThread = useCallback(async (threadId: string) => {
