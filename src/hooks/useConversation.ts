@@ -247,6 +247,70 @@ export function useConversation() {
     }
   }, []);
 
+  // スレッドを削除
+  const deleteThread = useCallback(async (threadId: string) => {
+    if (isLoadingRef.current) return;
+
+    const currentThreads = threadsRef.current;
+    const remaining = currentThreads.filter((t) => t.id !== threadId);
+
+    // メッセージを LocalStorage から削除
+    await clearStorageMessages(threadId);
+
+    if (remaining.length === 0) {
+      // 全スレッド削除: 新規スレッドを自動作成
+      const newThread = createNewThread();
+      const newThreads = [newThread];
+
+      setThreads(newThreads);
+      setCurrentThreadId(newThread.id);
+      messagesRef.current = [];
+      setMessages([]);
+
+      try {
+        await saveThreads(newThreads);
+        await saveCurrentThreadId(newThread.id);
+      } catch {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "スレッドの保存に失敗しました",
+        });
+      }
+    } else if (currentThreadIdRef.current === threadId) {
+      // 現在のスレッドを削除した場合: 最新のスレッドに切替
+      const nextThread = remaining[0];
+
+      setThreads(remaining);
+      setCurrentThreadId(nextThread.id);
+
+      try {
+        await saveThreads(remaining);
+        await saveCurrentThreadId(nextThread.id);
+
+        const restoredMessages = await loadMessages(nextThread.id);
+        messagesRef.current = restoredMessages;
+        setMessages(restoredMessages);
+      } catch {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "スレッドの切替に失敗しました",
+        });
+      }
+    } else {
+      // 別のスレッドを削除: 現在のスレッドは維持
+      setThreads(remaining);
+
+      try {
+        await saveThreads(remaining);
+      } catch {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "スレッドの保存に失敗しました",
+        });
+      }
+    }
+  }, []);
+
   return {
     messages,
     isLoading,
@@ -256,5 +320,6 @@ export function useConversation() {
     clearMessages: clearConversation,
     createThread,
     switchThread,
+    deleteThread,
   };
 }

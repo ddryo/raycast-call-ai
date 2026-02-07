@@ -10,9 +10,10 @@ import {
   Toast,
   Icon,
   Alert,
+  Color,
 } from "@raycast/api";
 import { useConversation } from "./hooks/useConversation";
-import { Message } from "./types";
+import { Message, Thread } from "./types";
 
 /** メッセージのプレビューテキストを生成する（短縮表示用） */
 function truncate(text: string, maxLength = 60): string {
@@ -37,6 +38,17 @@ function roleLabel(role: Message["role"]): string {
 function formatTime(isoString: string): string {
   const date = new Date(isoString);
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+/** 日時を読みやすい形式でフォーマットする */
+function formatDateTime(isoString: string): string {
+  const date = new Date(isoString);
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 /** 複数行テキスト入力フォーム */
@@ -72,9 +84,88 @@ function MultiLineForm({
   );
 }
 
+/** スレッド一覧コンポーネント */
+function ThreadList({
+  threads,
+  currentThreadId,
+  switchThread,
+  deleteThread,
+}: {
+  threads: Thread[];
+  currentThreadId: string;
+  switchThread: (threadId: string) => Promise<void>;
+  deleteThread: (threadId: string) => Promise<void>;
+}) {
+  const { pop } = useNavigation();
+
+  async function handleSelect(threadId: string) {
+    await switchThread(threadId);
+    pop();
+  }
+
+  async function handleDelete(threadId: string) {
+    const confirmed = await confirmAlert({
+      title: "スレッドを削除しますか?",
+      message: "この操作は取り消せません。",
+      primaryAction: {
+        title: "削除",
+        style: Alert.ActionStyle.Destructive,
+      },
+    });
+    if (!confirmed) return;
+    await deleteThread(threadId);
+    await showToast({
+      style: Toast.Style.Success,
+      title: "スレッドを削除しました",
+    });
+  }
+
+  return (
+    <List navigationTitle="会話一覧">
+      {threads.map((thread) => (
+        <List.Item
+          key={thread.id}
+          title={thread.title}
+          icon={
+            thread.id === currentThreadId
+              ? { source: Icon.CheckCircle, tintColor: Color.Green }
+              : Icon.Circle
+          }
+          accessories={[{ text: formatDateTime(thread.updatedAt) }]}
+          actions={
+            <ActionPanel>
+              <Action
+                title="Open Conversation"
+                icon={Icon.ArrowRight}
+                onAction={() => handleSelect(thread.id)}
+              />
+              <Action
+                title="Delete Conversation"
+                icon={Icon.Trash}
+                style={Action.Style.Destructive}
+                shortcut={{ modifiers: ["ctrl"], key: "x" }}
+                onAction={() => handleDelete(thread.id)}
+              />
+            </ActionPanel>
+          }
+        />
+      ))}
+    </List>
+  );
+}
+
 export default function AskAI() {
-  const { messages, isLoading, sendMessage, clearMessages, createThread } =
-    useConversation();
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    clearMessages,
+    createThread,
+    threads,
+    currentThreadId,
+    switchThread,
+    deleteThread,
+  } = useConversation();
   const [searchText, setSearchText] = useState("");
 
   /** SearchBar の Enter 押下時にメッセージを送信する */
@@ -104,6 +195,15 @@ export default function AskAI() {
     });
   }
 
+  const threadListTarget = (
+    <ThreadList
+      threads={threads}
+      currentThreadId={currentThreadId}
+      switchThread={switchThread}
+      deleteThread={deleteThread}
+    />
+  );
+
   // 最新メッセージが上に来るように逆順で表示
   const reversedMessages = [...messages].reverse();
 
@@ -127,6 +227,12 @@ export default function AskAI() {
                 title="Multiline Input"
                 shortcut={{ modifiers: ["cmd"], key: "l" }}
                 target={<MultiLineForm onSend={sendMessage} />}
+              />
+              <Action.Push
+                title="Conversation List"
+                icon={Icon.List}
+                shortcut={{ modifiers: ["cmd"], key: "t" }}
+                target={threadListTarget}
               />
               <Action
                 title="New Conversation"
@@ -157,6 +263,12 @@ export default function AskAI() {
                   title="Multiline Input"
                   shortcut={{ modifiers: ["cmd"], key: "l" }}
                   target={<MultiLineForm onSend={sendMessage} />}
+                />
+                <Action.Push
+                  title="Conversation List"
+                  icon={Icon.List}
+                  shortcut={{ modifiers: ["cmd"], key: "t" }}
+                  target={threadListTarget}
                 />
                 <Action
                   title="New Conversation"
