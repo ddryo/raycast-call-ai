@@ -81,8 +81,9 @@ ask-ai.tsx（メインコマンド）
   │     ├── createChatCompletion(): 全履歴を送信し応答を取得
   │     └── エラー分類（401/429/タイムアウト/ネットワーク断）
   └── conversation.ts（永続化層）
-        ├── saveConversation(): LocalStorage に保存
-        └── loadConversation(): LocalStorage から復元
+        ├── saveMessages(): LocalStorage に保存
+        ├── loadMessages(): LocalStorage から復元
+        └── clearMessages(): LocalStorage から削除
 ```
 
 ### UI フロー
