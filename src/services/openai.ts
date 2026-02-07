@@ -68,9 +68,9 @@ function estimateMessagesTokens(messages: Message[]): number {
 
 // モデルごとのコンテキスト上限
 const MODEL_CONTEXT_LIMITS: Record<string, number> = {
-  "gpt-4o-mini": 128000,
-  "gpt-4o": 128000,
-  "gpt-4-turbo": 128000,
+  "gpt-4.1-nano": 1047576,
+  "gpt-4.1-mini": 1047576,
+  "gpt-4.1": 1047576,
 };
 const DEFAULT_CONTEXT_LIMIT = 128000;
 const RESPONSE_BUFFER = 4096;

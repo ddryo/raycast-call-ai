@@ -11,7 +11,7 @@ type ExtensionPreferences = {
   /** OpenAI API Key - OpenAI の API キー */
   "apiKey": string,
   /** Model - 使用する GPT モデル */
-  "model": "gpt-4o-mini" | "gpt-4o" | "gpt-4-turbo"
+  "model": "gpt-4.1-nano" | "gpt-4.1-mini" | "gpt-4.1"
 }
 
 /** Preferences accessible in all the extension's commands */

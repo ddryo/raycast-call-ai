@@ -32,19 +32,19 @@
       "required": false,
       "title": "Model",
       "description": "使用する GPT モデル",
-      "default": "gpt-4o-mini",
+      "default": "gpt-4.1-nano",
       "data": [
         {
-          "title": "GPT-4o Mini",
-          "value": "gpt-4o-mini"
+          "title": "GPT-4.1 nano",
+          "value": "gpt-4.1-nano"
         },
         {
-          "title": "GPT-4o",
-          "value": "gpt-4o"
+          "title": "GPT-4.1 mini",
+          "value": "gpt-4.1-mini"
         },
         {
-          "title": "GPT-4 Turbo",
-          "value": "gpt-4-turbo"
+          "title": "GPT-4.1",
+          "value": "gpt-4.1"
         }
       ]
     }
