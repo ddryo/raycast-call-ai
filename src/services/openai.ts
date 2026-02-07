@@ -79,12 +79,12 @@ const RESPONSE_BUFFER = 4096;
 export function trimMessagesForContext(
   messages: Message[],
   model: string,
-): { trimmed: Message[]; wasTrimmed: boolean } {
+): { trimmed: Message[]; wasTrimmed: boolean; exceedsLimit: boolean } {
   const limit =
     (MODEL_CONTEXT_LIMITS[model] ?? DEFAULT_CONTEXT_LIMIT) - RESPONSE_BUFFER;
 
   if (estimateMessagesTokens(messages) <= limit) {
-    return { trimmed: messages, wasTrimmed: false };
+    return { trimmed: messages, wasTrimmed: false, exceedsLimit: false };
   }
 
   // system メッセージは常に保持
@@ -108,10 +108,15 @@ export function trimMessagesForContext(
     result.push(nonSystemMessages[i]);
   }
 
+  // 最終チェック: トリミング後も上限を超える場合（単一メッセージが巨大等）
+  if (estimateMessagesTokens(result) > limit) {
+    return { trimmed: result, wasTrimmed: true, exceedsLimit: true };
+  }
+
   // 時系列順に戻す
   result.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
-  return { trimmed: result, wasTrimmed: true };
+  return { trimmed: result, wasTrimmed: true, exceedsLimit: false };
 }
 
 export async function createChatCompletion(

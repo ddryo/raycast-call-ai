@@ -99,8 +99,8 @@ function ThreadList({
   const { pop } = useNavigation();
 
   async function handleSelect(threadId: string) {
-    await switchThread(threadId);
-    pop();
+    const success = await switchThread(threadId);
+    if (success) pop();
   }
 
   async function handleDelete(threadId: string) {

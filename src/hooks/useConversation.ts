@@ -150,10 +150,22 @@ export function useConversation() {
     try {
       // トークン上限チェック: 超過時は古いメッセージを切り捨て
       const prefs = getPreferenceValues<Preferences>();
-      const { trimmed, wasTrimmed } = trimMessagesForContext(
+      const { trimmed, wasTrimmed, exceedsLimit } = trimMessagesForContext(
         nextMessages,
         prefs.model,
       );
+
+      if (exceedsLimit) {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "メッセージが長すぎます",
+          message: "メッセージを短くしてから再試行してください。",
+        });
+        // ユーザーメッセージは追加済みだが送信は中止
+        isLoadingRef.current = false;
+        setIsLoading(false);
+        return;
+      }
 
       if (wasTrimmed) {
         await showToast({
@@ -237,12 +249,12 @@ export function useConversation() {
     }
   }, []);
 
-  // スレッドを切り替え
-  const switchThread = useCallback(async (threadId: string) => {
-    if (isLoadingRef.current) return;
+  // スレッドを切り替え（成功時 true を返す）
+  const switchThread = useCallback(async (threadId: string): Promise<boolean> => {
+    if (isLoadingRef.current) return false;
 
     // 現在のスレッドと同じなら何もしない
-    if (currentThreadIdRef.current === threadId) return;
+    if (currentThreadIdRef.current === threadId) return false;
 
     isLoadingRef.current = true;
     setIsLoading(true);
@@ -254,11 +266,13 @@ export function useConversation() {
       const restoredMessages = await loadMessages(threadId);
       messagesRef.current = restoredMessages;
       setMessages(restoredMessages);
+      return true;
     } catch {
       await showToast({
         style: Toast.Style.Failure,
         title: "会話の復元に失敗しました",
       });
+      return false;
     } finally {
       isLoadingRef.current = false;
       setIsLoading(false);
