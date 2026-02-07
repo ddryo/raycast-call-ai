@@ -73,28 +73,65 @@ ask-ai/
 
 ```
 ask-ai.tsx（メインコマンド）
+  ├── AskAI()                   … デフォルトエクスポート。List + Detail UI
+  │     ├── SearchBar 入力 → handleSend() でメッセージ送信
+  │     ├── List.EmptyView      … 会話がない初期状態の案内表示
+  │     └── ActionPanel
+  │           ├── Action "Send Message"      … Enter で送信
+  │           └── Action.Push "Multiline Input" (Cmd+L)
+  │                 └── MultiLineForm        … 複数行入力フォーム
+  ├── MultiLineForm({ onSend }) … Form.TextArea + SubmitForm アクション
+  │     └── 送信後 pop() でメインビューに戻る
+  ├── ヘルパー関数
+  │     ├── truncate()           … メッセージ短縮表示（60文字上限）
+  │     ├── roleLabel()          … role → 表示名変換（User / AI / System）
+  │     └── formatTime()         … ISO 8601 → HH:MM 形式
+  │
   ├── useConversation（カスタムフック）
-  │     ├── state: Message[] の管理
-  │     ├── sendMessage(): API呼び出し + state更新
-  │     └── storage: 永続化層への保存・復元
+  │     ├── state: messages (Message[]), isLoading (boolean)
+  │     ├── sendMessage(content): ユーザーメッセージ追加 → API呼び出し → assistant応答追加 → 保存
+  │     ├── clearMessages(): ストレージ削除 + state リセット
+  │     └── 起動時復元: loadMessages() で LocalStorage から復元（失敗時 Toast 通知）
+  │
   ├── openai.ts（API通信層）
   │     ├── createChatCompletion(): 全履歴を送信し応答を取得
-  │     └── エラー分類（401/429/タイムアウト/ネットワーク断）
+  │     └── classifyError(): エラー分類（auth/rate_limit/timeout/network/unknown）
+  │
   └── conversation.ts（永続化層）
         ├── saveMessages(): LocalStorage に保存
         ├── loadMessages(): LocalStorage から復元
-        └── clearMessages(): LocalStorage から削除
+        ├── clearMessages(): LocalStorage から削除
+        └── DEFAULT_THREAD_ID: Phase 1 用の固定スレッドID定数
 ```
 
 ### UI フロー
 
-1. コマンド起動 → LocalStorage から会話履歴を復元 → List に表示
-2. SearchBar にテキスト入力 → Enter（または ActionPanel の複数行入力 Form から送信）
-3. ユーザーメッセージを List に追加 → isLoading = true → SearchBar を空にする
+#### 起動フロー
+1. コマンド起動 → `useConversation` が `isLoading = true` で初期化
+2. `loadMessages(DEFAULT_THREAD_ID)` で LocalStorage から会話履歴を復元
+3. 復元成功 → `messages` に反映、`isLoading = false` → List に逆順（最新が上）で表示
+4. 復元失敗 → Toast でエラー通知し、空の会話として開始
+
+#### メッセージ送信フロー（SearchBar）
+1. SearchBar にテキスト入力 → Enter キー押下
+2. 入力テキストを取得し、SearchBar を空にする
+3. ユーザーメッセージを `messages` に追加 → `isLoading = true`
 4. OpenAI API に全会話履歴を送信（非ストリーミング）
-5. 応答を受信 → assistant メッセージを List に追加 → isLoading = false
-6. LocalStorage に会話全体を保存
-7. 選択中の List.Item の Detail（markdown）に内容を表示
+5. 応答を受信 → assistant メッセージを `messages` に追加 → `isLoading = false`
+6. LocalStorage に会話全体を保存（保存失敗時は Toast で通知、state は維持）
+
+#### メッセージ送信フロー（複数行入力）
+1. ActionPanel から `Multiline Input`（Cmd+L）を選択
+2. `Action.Push` で `MultiLineForm` を表示（Form.TextArea による複数行入力）
+3. テキスト入力後 Submit → `pop()` でメインビューに戻る
+4. 以降は SearchBar 送信フローの手順 3 以降と同じ
+
+#### 表示仕様
+- メッセージは**逆順表示**（最新メッセージが List の先頭に表示される）
+- 会話が 1 件以上存在する場合のみ `isShowingDetail = true` で Detail パネルを表示
+- 会話が 0 件の場合は `List.EmptyView` で案内メッセージを表示
+- `filtering = false` に設定し、SearchBar の入力をフィルタリングではなくメッセージ送信用途に使用
+- 各 List.Item には `roleLabel`（User / AI / System）と `truncate` で短縮した本文、`formatTime` で HH:MM 形式の時刻を表示
 
 
 ## 5. インターフェース
