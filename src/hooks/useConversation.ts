@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { showToast, Toast, getPreferenceValues } from "@raycast/api";
 import { Message, Preferences, Thread } from "../types";
@@ -32,7 +33,7 @@ function createDefaultThread(): Thread {
 function createNewThread(): Thread {
   const now = new Date().toISOString();
   return {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     title: "新しい会話",
     createdAt: now,
     updatedAt: now,
@@ -118,7 +119,7 @@ export function useConversation() {
     const threadId = currentThreadIdRef.current;
 
     const userMessage: Message = {
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       threadId,
       role: "user",
       content,
@@ -177,7 +178,7 @@ export function useConversation() {
       const responseContent = await createChatCompletion(trimmed);
 
       const assistantMessage: Message = {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         threadId,
         role: "assistant",
         content: responseContent,
