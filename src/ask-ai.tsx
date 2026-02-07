@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { List, ActionPanel, Action, Form, useNavigation } from "@raycast/api";
+import {
+  List,
+  ActionPanel,
+  Action,
+  Form,
+  useNavigation,
+  confirmAlert,
+  showToast,
+  Toast,
+  Icon,
+  Alert,
+} from "@raycast/api";
 import { useConversation } from "./hooks/useConversation";
 import { Message } from "./types";
 
@@ -62,7 +73,7 @@ function MultiLineForm({
 }
 
 export default function AskAI() {
-  const { messages, isLoading, sendMessage } = useConversation();
+  const { messages, isLoading, sendMessage, clearMessages } = useConversation();
   const [searchText, setSearchText] = useState("");
 
   /** SearchBar の Enter 押下時にメッセージを送信する */
@@ -71,6 +82,24 @@ export default function AskAI() {
     if (text.length === 0 || isLoading) return;
     setSearchText("");
     await sendMessage(text);
+  }
+
+  /** 会話履歴をクリアする（確認ダイアログ付き） */
+  async function handleClearConversation() {
+    const confirmed = await confirmAlert({
+      title: "会話をクリアしますか?",
+      message: "この操作は取り消せません。",
+      primaryAction: {
+        title: "クリア",
+        style: Alert.ActionStyle.Destructive,
+      },
+    });
+    if (!confirmed) return;
+    await clearMessages();
+    await showToast({
+      style: Toast.Style.Success,
+      title: "会話をクリアしました",
+    });
   }
 
   // 最新メッセージが上に来るように逆順で表示
@@ -111,10 +140,22 @@ export default function AskAI() {
             actions={
               <ActionPanel>
                 <Action title="Send Message" onAction={handleSend} />
+                <Action.CopyToClipboard
+                  title="Copy Content"
+                  content={message.content}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+                />
                 <Action.Push
                   title="Multiline Input"
                   shortcut={{ modifiers: ["cmd"], key: "l" }}
                   target={<MultiLineForm onSend={sendMessage} />}
+                />
+                <Action
+                  title="Clear Conversation"
+                  icon={Icon.Trash}
+                  style={Action.Style.Destructive}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "backspace" }}
+                  onAction={handleClearConversation}
                 />
               </ActionPanel>
             }
