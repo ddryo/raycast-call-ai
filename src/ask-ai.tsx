@@ -14,15 +14,14 @@ import {
 import { useConversation } from "./hooks/useConversation";
 import { Message } from "./types";
 
-/** 日時を読みやすい形式でフォーマットする */
+/** 日時を m/d HH:MM 形式でフォーマットする */
 function formatDateTime(isoString: string): string {
   const date = new Date(isoString);
-  return date.toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const m = date.getMonth() + 1;
+  const d = date.getDate();
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${m}/${d} ${hh}:${mm}`;
 }
 
 /** 会話メッセージを Markdown テキストに変換する */
