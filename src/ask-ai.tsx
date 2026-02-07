@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { List, ActionPanel, Action } from "@raycast/api";
+import { List, ActionPanel, Action, Form, useNavigation } from "@raycast/api";
 import { useConversation } from "./hooks/useConversation";
 import { Message } from "./types";
 
@@ -26,6 +26,39 @@ function roleLabel(role: Message["role"]): string {
 function formatTime(isoString: string): string {
   const date = new Date(isoString);
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+/** 複数行テキスト入力フォーム */
+function MultiLineForm({
+  onSend,
+}: {
+  onSend: (text: string) => Promise<void>;
+}) {
+  const { pop } = useNavigation();
+
+  async function handleSubmit(values: { message: string }) {
+    const text = values.message.trim();
+    if (text.length === 0) return;
+    pop();
+    await onSend(text);
+  }
+
+  return (
+    <Form
+      actions={
+        <ActionPanel>
+          <Action.SubmitForm title="Send Message" onSubmit={handleSubmit} />
+        </ActionPanel>
+      }
+    >
+      <Form.TextArea
+        id="message"
+        title="Message"
+        placeholder="AI に送信するメッセージを入力..."
+        autoFocus
+      />
+    </Form>
+  );
 }
 
 export default function AskAI() {
@@ -68,6 +101,11 @@ export default function AskAI() {
             actions={
               <ActionPanel>
                 <Action title="Send Message" onAction={handleSend} />
+                <Action.Push
+                  title="Multiline Input"
+                  shortcut={{ modifiers: ["cmd"], key: "l" }}
+                  target={<MultiLineForm onSend={sendMessage} />}
+                />
               </ActionPanel>
             }
           />

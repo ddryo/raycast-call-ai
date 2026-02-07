@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { showToast, Toast } from "@raycast/api";
 import { Message } from "../types";
 import { createChatCompletion } from "../services/openai";
 import {
@@ -10,13 +11,24 @@ import {
 
 export function useConversation() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // マウント時に LocalStorage から会話を復元
   useEffect(() => {
-    loadMessages(DEFAULT_THREAD_ID).then((restored) => {
-      setMessages(restored);
-    });
+    loadMessages(DEFAULT_THREAD_ID)
+      .then((restored) => {
+        setMessages(restored);
+      })
+      .catch(async () => {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "会話の復元に失敗しました",
+          message: "新しい会話として開始します",
+        });
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, []);
 
   // メッセージ送信
@@ -48,7 +60,17 @@ export function useConversation() {
 
         const finalMessages = [...nextMessages, assistantMessage];
         setMessages(finalMessages);
-        await saveMessages(DEFAULT_THREAD_ID, finalMessages);
+
+        // 保存処理（失敗時は Toast で通知するが、state は維持する）
+        try {
+          await saveMessages(DEFAULT_THREAD_ID, finalMessages);
+        } catch {
+          await showToast({
+            style: Toast.Style.Failure,
+            title: "会話の保存に失敗しました",
+            message: "次回起動時に会話が復元されない可能性があります",
+          });
+        }
       } finally {
         setIsLoading(false);
       }
