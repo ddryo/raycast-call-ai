@@ -97,8 +97,11 @@ export function useConversation() {
 
   // 会話クリア（ストレージと state の両方）
   const clearConversation = useCallback(async () => {
-    await clearStorageMessages(DEFAULT_THREAD_ID);
+    // 送信中はクリアを無効化
+    if (isLoadingRef.current) return;
+    messagesRef.current = [];
     setMessages([]);
+    await clearStorageMessages(DEFAULT_THREAD_ID);
   }, []);
 
   return { messages, isLoading, sendMessage, clearMessages: clearConversation };

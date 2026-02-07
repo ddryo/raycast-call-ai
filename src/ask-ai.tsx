@@ -86,6 +86,7 @@ export default function AskAI() {
 
   /** 会話履歴をクリアする（確認ダイアログ付き） */
   async function handleClearConversation() {
+    if (isLoading) return;
     const confirmed = await confirmAlert({
       title: "会話をクリアしますか?",
       message: "この操作は取り消せません。",
