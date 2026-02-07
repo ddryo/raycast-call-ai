@@ -45,6 +45,40 @@
         {
           "title": "GPT-4.1",
           "value": "gpt-4.1"
+        },
+        {
+          "title": "GPT-5 nano",
+          "value": "gpt-5-nano"
+        },
+        {
+          "title": "GPT-5 mini",
+          "value": "gpt-5-mini"
+        },
+        {
+          "title": "GPT-5.2",
+          "value": "gpt-5.2"
+        }
+      ]
+    },
+    {
+      "name": "reasoningEffort",
+      "type": "dropdown",
+      "required": false,
+      "title": "Reasoning Effort",
+      "description": "GPT-5 系モデルの推論レベル（4.1 系では無視されます）",
+      "default": "medium",
+      "data": [
+        {
+          "title": "Low",
+          "value": "low"
+        },
+        {
+          "title": "Medium",
+          "value": "medium"
+        },
+        {
+          "title": "High",
+          "value": "high"
         }
       ]
     }

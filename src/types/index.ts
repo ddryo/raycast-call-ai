@@ -37,4 +37,5 @@ export interface ApiError {
 export interface Preferences {
   apiKey: string;
   model: string;
+  reasoningEffort: string;
 }

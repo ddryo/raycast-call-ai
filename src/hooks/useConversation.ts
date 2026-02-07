@@ -198,12 +198,15 @@ export function useConversation() {
         setStatusText("Web検索中...");
       });
 
-      const prefix = result.usedWebSearch ? "`Web検索`\n\n" : "";
+      const tags = [
+        `\`${result.model}\``,
+        ...(result.usedWebSearch ? ["`Web検索`"] : []),
+      ].join(" ");
       const assistantMessage: Message = {
         id: randomUUID(),
         threadId,
         role: "assistant",
-        content: prefix + result.content,
+        content: tags + "\n\n" + result.content,
         createdAt: new Date().toISOString(),
       };
 

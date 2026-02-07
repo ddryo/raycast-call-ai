@@ -71,9 +71,15 @@ const MODEL_CONTEXT_LIMITS: Record<string, number> = {
   "gpt-4.1-nano": 1047576,
   "gpt-4.1-mini": 1047576,
   "gpt-4.1": 1047576,
+  "gpt-5-nano": 400000,
+  "gpt-5-mini": 400000,
+  "gpt-5.2": 400000,
 };
 const DEFAULT_CONTEXT_LIMIT = 128000;
 const RESPONSE_BUFFER = 4096;
+
+// 推論モデル判定
+const REASONING_MODELS = new Set(["gpt-5-nano", "gpt-5-mini", "gpt-5.2"]);
 
 // 上限を超える場合に古いメッセージを切り捨て
 export function trimMessagesForContext(
@@ -122,6 +128,7 @@ export function trimMessagesForContext(
 export interface ChatCompletionResult {
   content: string;
   usedWebSearch: boolean;
+  model: string;
 }
 
 export async function createChatCompletion(
@@ -140,8 +147,11 @@ export async function createChatCompletion(
       ? systemMessages.map((m) => m.content).join("\n")
       : undefined;
 
+  const selectedModel = model ?? prefs.model;
+  const isReasoning = REASONING_MODELS.has(selectedModel);
+
   const stream = await client.responses.create({
-    model: model ?? prefs.model,
+    model: selectedModel,
     instructions,
     input: nonSystemMessages.map((m) => ({
       role: m.role as "user" | "assistant",
@@ -149,10 +159,16 @@ export async function createChatCompletion(
     })),
     tools: [{ type: "web_search_preview" }],
     stream: true,
+    ...(isReasoning && {
+      reasoning: {
+        effort: prefs.reasoningEffort as "low" | "medium" | "high",
+      },
+    }),
   });
 
   let usedWebSearch = false;
   let text = "";
+  let resolvedModel = selectedModel;
 
   for await (const event of stream) {
     if (
@@ -169,7 +185,14 @@ export async function createChatCompletion(
     ) {
       text += (event as { delta: string }).delta;
     }
+    if (
+      event.type === "response.completed" &&
+      "response" in event
+    ) {
+      resolvedModel =
+        (event.response as { model?: string }).model ?? selectedModel;
+    }
   }
 
-  return { content: text, usedWebSearch };
+  return { content: text, usedWebSearch, model: resolvedModel };
 }
