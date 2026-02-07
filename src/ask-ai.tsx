@@ -73,7 +73,8 @@ function MultiLineForm({
 }
 
 export default function AskAI() {
-  const { messages, isLoading, sendMessage, clearMessages } = useConversation();
+  const { messages, isLoading, sendMessage, clearMessages, createThread } =
+    useConversation();
   const [searchText, setSearchText] = useState("");
 
   /** SearchBar の Enter 押下時にメッセージを送信する */
@@ -127,6 +128,12 @@ export default function AskAI() {
                 shortcut={{ modifiers: ["cmd"], key: "l" }}
                 target={<MultiLineForm onSend={sendMessage} />}
               />
+              <Action
+                title="New Conversation"
+                icon={Icon.PlusCircle}
+                shortcut={{ modifiers: ["cmd"], key: "n" }}
+                onAction={createThread}
+              />
             </ActionPanel>
           }
         />
@@ -150,6 +157,12 @@ export default function AskAI() {
                   title="Multiline Input"
                   shortcut={{ modifiers: ["cmd"], key: "l" }}
                   target={<MultiLineForm onSend={sendMessage} />}
+                />
+                <Action
+                  title="New Conversation"
+                  icon={Icon.PlusCircle}
+                  shortcut={{ modifiers: ["cmd"], key: "n" }}
+                  onAction={createThread}
                 />
                 <Action
                   title="Clear Conversation"
