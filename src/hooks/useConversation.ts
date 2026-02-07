@@ -13,6 +13,7 @@ export function useConversation() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const messagesRef = useRef<Message[]>([]);
+  const isLoadingRef = useRef(true); // 初期値 true（復元中のため）
 
   // messagesRef を常に最新に保つ
   useEffect(() => {
@@ -33,14 +34,16 @@ export function useConversation() {
         });
       })
       .finally(() => {
+        isLoadingRef.current = false;
         setIsLoading(false);
       });
   }, []);
 
   // メッセージ送信
   const sendMessage = useCallback(async (content: string) => {
-    // 二重送信防止
+    // 二重送信防止（同期的に即時チェック＆ロック）
     if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -87,15 +90,10 @@ export function useConversation() {
         message: apiError.message,
       });
     } finally {
+      isLoadingRef.current = false;
       setIsLoading(false);
     }
   }, []);
-
-  // isLoading を ref でも追跡（二重送信防止用）
-  const isLoadingRef = useRef(false);
-  useEffect(() => {
-    isLoadingRef.current = isLoading;
-  }, [isLoading]);
 
   // 会話クリア（ストレージと state の両方）
   const clearConversation = useCallback(async () => {
