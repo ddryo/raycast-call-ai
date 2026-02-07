@@ -119,21 +119,57 @@ export function trimMessagesForContext(
   return { trimmed: result, wasTrimmed: true, exceedsLimit: false };
 }
 
+export interface ChatCompletionResult {
+  content: string;
+  usedWebSearch: boolean;
+}
+
 export async function createChatCompletion(
   messages: Message[],
   model?: string,
-): Promise<string> {
+  onWebSearch?: () => void,
+): Promise<ChatCompletionResult> {
   const client = getClient();
   const prefs = getPreferenceValues<Preferences>();
 
-  const response = await client.chat.completions.create({
+  // system メッセージを instructions として分離
+  const systemMessages = messages.filter((m) => m.role === "system");
+  const nonSystemMessages = messages.filter((m) => m.role !== "system");
+  const instructions =
+    systemMessages.length > 0
+      ? systemMessages.map((m) => m.content).join("\n")
+      : undefined;
+
+  const stream = await client.responses.create({
     model: model ?? prefs.model,
-    messages: messages.map((m) => ({
-      role: m.role,
+    instructions,
+    input: nonSystemMessages.map((m) => ({
+      role: m.role as "user" | "assistant",
       content: m.content,
     })),
-    stream: false,
+    tools: [{ type: "web_search_preview" }],
+    stream: true,
   });
 
-  return response.choices[0]?.message?.content ?? "";
+  let usedWebSearch = false;
+  let text = "";
+
+  for await (const event of stream) {
+    if (
+      event.type === "response.output_item.added" &&
+      "item" in event &&
+      (event.item as { type: string }).type === "web_search_call"
+    ) {
+      usedWebSearch = true;
+      onWebSearch?.();
+    }
+    if (
+      event.type === "response.output_text.delta" &&
+      "delta" in event
+    ) {
+      text += (event as { delta: string }).delta;
+    }
+  }
+
+  return { content: text, usedWebSearch };
 }

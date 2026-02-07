@@ -25,17 +25,25 @@ function formatDateTime(isoString: string): string {
 }
 
 /** 会話メッセージを Markdown テキストに変換する */
-function buildConversationMarkdown(messages: Message[] | undefined): string {
+function buildConversationMarkdown(
+  messages: Message[] | undefined,
+  statusText?: string | null,
+): string {
   if (!messages || messages.length === 0) {
     return "*メッセージを入力して会話を始めましょう*";
   }
-  return [...messages]
+  const lines = [...messages]
     .reverse()
     .map((msg) => {
       const role = msg.role === "user" ? "**You**" : "**AI**";
       return `${role}\n\n${msg.content}`;
     })
     .join("\n\n---\n\n");
+
+  if (statusText) {
+    return `*${statusText}*\n\n---\n\n${lines}`;
+  }
+  return lines;
 }
 
 /** 最後の AI レスポンスを取得する */
@@ -85,6 +93,7 @@ function MultiLineForm({
 export default function AskAI() {
   const {
     isLoading,
+    statusText,
     sendMessage,
     clearMessages,
     createThread,
@@ -189,7 +198,7 @@ export default function AskAI() {
             accessories={[{ text: formatDateTime(thread.updatedAt) }]}
             detail={
               <List.Item.Detail
-                markdown={buildConversationMarkdown(cachedMessages)}
+                markdown={buildConversationMarkdown(cachedMessages, statusText)}
               />
             }
             actions={

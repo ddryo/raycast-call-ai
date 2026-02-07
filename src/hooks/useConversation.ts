@@ -49,6 +49,7 @@ export function useConversation() {
   const [messageCache, setMessageCache] = useState<Record<string, Message[]>>(
     {},
   );
+  const [statusText, setStatusText] = useState<string | null>(null);
   const messagesRef = useRef<Message[]>([]);
   const isLoadingRef = useRef(true); // 初期値 true（復元中のため）
   const threadsRef = useRef<Thread[]>([]);
@@ -151,6 +152,7 @@ export function useConversation() {
       setMessages(nextMessages);
     }
     setIsLoading(true);
+    setStatusText("考え中...");
 
     // スレッドタイトルの自動生成: 初回送信時（既存メッセージが0件のとき）
     if (messagesRef.current.length === 0) {
@@ -196,13 +198,16 @@ export function useConversation() {
         });
       }
 
-      const responseContent = await createChatCompletion(trimmed);
+      const result = await createChatCompletion(trimmed, undefined, () => {
+        setStatusText("Web検索中...");
+      });
 
+      const prefix = result.usedWebSearch ? "`Web検索`\n\n" : "";
       const assistantMessage: Message = {
         id: randomUUID(),
         threadId,
         role: "assistant",
-        content: responseContent,
+        content: prefix + result.content,
         createdAt: new Date().toISOString(),
       };
 
@@ -239,6 +244,7 @@ export function useConversation() {
     } finally {
       isLoadingRef.current = false;
       setIsLoading(false);
+      setStatusText(null);
     }
   }, []);
 
@@ -399,6 +405,7 @@ export function useConversation() {
   return {
     messages,
     isLoading,
+    statusText,
     threads,
     currentThreadId,
     sendMessage,
