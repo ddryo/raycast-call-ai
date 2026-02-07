@@ -50,6 +50,70 @@ export function classifyError(error: unknown): ApiError {
   };
 }
 
+// トークン数の簡易推定
+function estimateTokens(text: string): number {
+  // 日本語文字数 × (1/1.5) + 英語文字数 × (1/4) の概算
+  // 簡易実装: 全体の文字数 / 2 で近似
+  return Math.ceil(text.length / 2);
+}
+
+// メッセージ配列のトークン数を推定
+function estimateMessagesTokens(messages: Message[]): number {
+  return messages.reduce(
+    (total, m) => total + estimateTokens(m.content) + 4,
+    0,
+  );
+  // +4 はメッセージごとのオーバーヘッド（role, name等）
+}
+
+// モデルごとのコンテキスト上限
+const MODEL_CONTEXT_LIMITS: Record<string, number> = {
+  "gpt-4o-mini": 128000,
+  "gpt-4o": 128000,
+  "gpt-4-turbo": 128000,
+};
+const DEFAULT_CONTEXT_LIMIT = 128000;
+const RESPONSE_BUFFER = 4096;
+
+// 上限を超える場合に古いメッセージを切り捨て
+export function trimMessagesForContext(
+  messages: Message[],
+  model: string,
+): { trimmed: Message[]; wasTrimmed: boolean } {
+  const limit =
+    (MODEL_CONTEXT_LIMITS[model] ?? DEFAULT_CONTEXT_LIMIT) - RESPONSE_BUFFER;
+
+  if (estimateMessagesTokens(messages) <= limit) {
+    return { trimmed: messages, wasTrimmed: false };
+  }
+
+  // system メッセージは常に保持
+  const systemMessages = messages.filter((m) => m.role === "system");
+  const nonSystemMessages = messages.filter((m) => m.role !== "system");
+
+  // 最新のユーザーメッセージのインデックス（nonSystemMessages 内）
+  const lastUserIndex = nonSystemMessages.length - 1;
+
+  // 新しいメッセージから順に追加し、上限内に収める
+  const result: Message[] = [...systemMessages];
+  const systemTokens = estimateMessagesTokens(systemMessages);
+  let currentTokens = systemTokens;
+
+  for (let i = nonSystemMessages.length - 1; i >= 0; i--) {
+    const msgTokens = estimateTokens(nonSystemMessages[i].content) + 4;
+    if (currentTokens + msgTokens > limit && i !== lastUserIndex) {
+      continue; // 古いメッセージをスキップ
+    }
+    currentTokens += msgTokens;
+    result.push(nonSystemMessages[i]);
+  }
+
+  // 時系列順に戻す
+  result.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+
+  return { trimmed: result, wasTrimmed: true };
+}
+
 export async function createChatCompletion(
   messages: Message[],
   model?: string,

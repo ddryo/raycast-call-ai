@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { showToast, Toast } from "@raycast/api";
-import { Message, Thread } from "../types";
-import { createChatCompletion, classifyError } from "../services/openai";
+import { showToast, Toast, getPreferenceValues } from "@raycast/api";
+import { Message, Preferences, Thread } from "../types";
+import {
+  createChatCompletion,
+  classifyError,
+  trimMessagesForContext,
+} from "../services/openai";
 import {
   DEFAULT_THREAD_ID,
   saveMessages,
@@ -144,7 +148,21 @@ export function useConversation() {
     }
 
     try {
-      const responseContent = await createChatCompletion(nextMessages);
+      // トークン上限チェック: 超過時は古いメッセージを切り捨て
+      const prefs = getPreferenceValues<Preferences>();
+      const { trimmed, wasTrimmed } = trimMessagesForContext(
+        nextMessages,
+        prefs.model,
+      );
+
+      if (wasTrimmed) {
+        await showToast({
+          style: Toast.Style.Animated,
+          title: "古いメッセージを一部省略して送信しました",
+        });
+      }
+
+      const responseContent = await createChatCompletion(trimmed);
 
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
