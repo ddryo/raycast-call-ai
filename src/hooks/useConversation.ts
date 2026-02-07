@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { showToast, Toast } from "@raycast/api";
 import { Message } from "../types";
-import { createChatCompletion } from "../services/openai";
+import { createChatCompletion, classifyError } from "../services/openai";
 import {
   DEFAULT_THREAD_ID,
   saveMessages,
@@ -12,6 +12,12 @@ import {
 export function useConversation() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const messagesRef = useRef<Message[]>([]);
+
+  // messagesRef を常に最新に保つ
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // マウント時に LocalStorage から会話を復元
   useEffect(() => {
@@ -32,51 +38,64 @@ export function useConversation() {
   }, []);
 
   // メッセージ送信
-  const sendMessage = useCallback(
-    async (content: string) => {
-      const userMessage: Message = {
+  const sendMessage = useCallback(async (content: string) => {
+    // 二重送信防止
+    if (isLoadingRef.current) return;
+
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      threadId: DEFAULT_THREAD_ID,
+      role: "user",
+      content,
+      createdAt: new Date().toISOString(),
+    };
+
+    // useRef で最新の messages を参照
+    const nextMessages = [...messagesRef.current, userMessage];
+    setMessages(nextMessages);
+    setIsLoading(true);
+
+    try {
+      const responseContent = await createChatCompletion(nextMessages);
+
+      const assistantMessage: Message = {
         id: crypto.randomUUID(),
         threadId: DEFAULT_THREAD_ID,
-        role: "user",
-        content,
+        role: "assistant",
+        content: responseContent,
         createdAt: new Date().toISOString(),
       };
 
-      // ローカル変数で確定した配列を以降の処理で一貫して使用
-      const nextMessages = [...messages, userMessage];
-      setMessages(nextMessages);
-      setIsLoading(true);
+      const finalMessages = [...nextMessages, assistantMessage];
+      setMessages(finalMessages);
 
+      // 保存処理（失敗時は Toast で通知するが、state は維持する）
       try {
-        const responseContent = await createChatCompletion(nextMessages);
-
-        const assistantMessage: Message = {
-          id: crypto.randomUUID(),
-          threadId: DEFAULT_THREAD_ID,
-          role: "assistant",
-          content: responseContent,
-          createdAt: new Date().toISOString(),
-        };
-
-        const finalMessages = [...nextMessages, assistantMessage];
-        setMessages(finalMessages);
-
-        // 保存処理（失敗時は Toast で通知するが、state は維持する）
-        try {
-          await saveMessages(DEFAULT_THREAD_ID, finalMessages);
-        } catch {
-          await showToast({
-            style: Toast.Style.Failure,
-            title: "会話の保存に失敗しました",
-            message: "次回起動時に会話が復元されない可能性があります",
-          });
-        }
-      } finally {
-        setIsLoading(false);
+        await saveMessages(DEFAULT_THREAD_ID, finalMessages);
+      } catch {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "会話の保存に失敗しました",
+          message: "次回起動時に会話が復元されない可能性があります",
+        });
       }
-    },
-    [messages],
-  );
+    } catch (error) {
+      const apiError = classifyError(error);
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "送信に失敗しました",
+        message: apiError.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // isLoading を ref でも追跡（二重送信防止用）
+  const isLoadingRef = useRef(false);
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
 
   // 会話クリア（ストレージと state の両方）
   const clearConversation = useCallback(async () => {

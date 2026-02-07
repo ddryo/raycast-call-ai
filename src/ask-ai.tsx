@@ -68,7 +68,7 @@ export default function AskAI() {
   /** SearchBar の Enter 押下時にメッセージを送信する */
   async function handleSend() {
     const text = searchText.trim();
-    if (text.length === 0) return;
+    if (text.length === 0 || isLoading) return;
     setSearchText("");
     await sendMessage(text);
   }
@@ -89,6 +89,16 @@ export default function AskAI() {
         <List.EmptyView
           title="Ask AI"
           description="メッセージを入力して Enter で送信"
+          actions={
+            <ActionPanel>
+              <Action title="Send Message" onAction={handleSend} />
+              <Action.Push
+                title="Multiline Input"
+                shortcut={{ modifiers: ["cmd"], key: "l" }}
+                target={<MultiLineForm onSend={sendMessage} />}
+              />
+            </ActionPanel>
+          }
         />
       ) : (
         reversedMessages.map((message) => (
