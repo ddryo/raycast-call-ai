@@ -217,16 +217,14 @@ export default function AICommands() {
             title={command.name}
             subtitle={truncate(command.systemPrompt, 60)}
             icon={getIconByName(command.icon)}
-            accessories={
-              command.model ? [{ text: getModelLabel(command.model) }] : []
-            }
+            accessories={[
+              ...(command.model
+                ? [{ text: getModelLabel(command.model) }]
+                : []),
+              { icon: Icon.Pencil, tooltip: "Edit" },
+            ]}
             actions={
               <ActionPanel>
-                <Action
-                  title="Start Conversation"
-                  icon={Icon.Message}
-                  onAction={() => handleStartConversation(command)}
-                />
                 <Action.Push
                   title="Edit Command"
                   icon={Icon.Pencil}
@@ -236,6 +234,12 @@ export default function AICommands() {
                       onUpdate={updateCommand}
                     />
                   }
+                />
+                <Action
+                  title="Start Conversation"
+                  icon={Icon.Message}
+                  shortcut={{ modifiers: ["cmd"], key: "return" }}
+                  onAction={() => handleStartConversation(command)}
                 />
                 <Action
                   title="Delete Command"

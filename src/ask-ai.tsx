@@ -239,7 +239,6 @@ export default function AskAI(
           value={getCurrentCustomCommandId()}
           onChange={handleDropdownChange}
         >
-          <List.Dropdown.Item title="デフォルト" value="" />
           {customCommands.map((cmd) => (
             <List.Dropdown.Item key={cmd.id} title={cmd.name} value={cmd.id} />
           ))}
