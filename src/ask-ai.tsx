@@ -94,6 +94,7 @@ export default function AskAI({ startNew = false }: { startNew?: boolean } = {})
   const {
     isLoading,
     statusText,
+    loadingThreadId,
     sendMessage,
     clearMessages,
     createThread,
@@ -198,7 +199,7 @@ export default function AskAI({ startNew = false }: { startNew?: boolean } = {})
             accessories={[{ text: formatDateTime(thread.updatedAt) }]}
             detail={
               <List.Item.Detail
-                markdown={buildConversationMarkdown(cachedMessages, statusText)}
+                markdown={buildConversationMarkdown(cachedMessages, thread.id === loadingThreadId ? statusText : null)}
               />
             }
             actions={

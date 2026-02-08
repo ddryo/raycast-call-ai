@@ -12,7 +12,7 @@ type ExtensionPreferences = {
   "apiKey": string,
   /** Model - 使用する GPT モデル */
   "model": "gpt-4.1-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-5-nano" | "gpt-5-mini" | "gpt-5.2",
-  /** Reasoning Effort - GPT-5 系モデルの推論レベル（4.1 系では無視されます） */
+  /** Reasoning Effort（推論モデル向け） - GPT-5 系モデルの推論レベル（4.1 系では無視されます） */
   "reasoningEffort": "low" | "medium" | "high"
 }
 

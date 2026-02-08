@@ -51,6 +51,7 @@ export function useConversation(options?: { startNew?: boolean }) {
     {},
   );
   const [statusText, setStatusText] = useState<string | null>(null);
+  const [loadingThreadId, setLoadingThreadId] = useState<string | null>(null);
   const messagesRef = useRef<Message[]>([]);
   const isLoadingRef = useRef(true); // 初期値 true（復元中のため）
   const threadsRef = useRef<Thread[]>([]);
@@ -177,6 +178,7 @@ export function useConversation(options?: { startNew?: boolean }) {
     }
     setIsLoading(true);
     setStatusText("考え中...");
+    setLoadingThreadId(threadId);
 
     // スレッドタイトルの自動生成: 初回送信時（既存メッセージが0件のとき）
     if (messagesRef.current.length === 0) {
@@ -272,6 +274,7 @@ export function useConversation(options?: { startNew?: boolean }) {
       isLoadingRef.current = false;
       setIsLoading(false);
       setStatusText(null);
+      setLoadingThreadId(null);
     }
   }, []);
 
@@ -433,6 +436,7 @@ export function useConversation(options?: { startNew?: boolean }) {
     messages,
     isLoading,
     statusText,
+    loadingThreadId,
     threads,
     currentThreadId,
     sendMessage,

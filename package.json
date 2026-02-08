@@ -70,7 +70,7 @@
       "name": "reasoningEffort",
       "type": "dropdown",
       "required": false,
-      "title": "Reasoning Effort",
+      "title": "Reasoning Effort（推論モデル向け）",
       "description": "GPT-5 系モデルの推論レベル（4.1 系では無視されます）",
       "default": "medium",
       "data": [
