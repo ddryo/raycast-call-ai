@@ -40,7 +40,8 @@ function createNewThread(): Thread {
   };
 }
 
-export function useConversation() {
+export function useConversation(options?: { startNew?: boolean }) {
+  const startNew = options?.startNew ?? false;
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -83,35 +84,62 @@ export function useConversation() {
     currentThreadIdRef.current = currentThreadId;
   }, [currentThreadId]);
 
-  // マウント時にスレッド一覧を復元し、新しい会話を作成して開始
+  // マウント時にスレッド一覧を復元
   useEffect(() => {
     (async () => {
       try {
         const restoredThreads = await loadThreads();
 
-        // 新しいスレッドを作成して先頭に追加
-        const newThread = createNewThread();
-        const allThreads = [newThread, ...restoredThreads];
+        if (startNew || restoredThreads.length === 0) {
+          // 新しい会話で開始（ask-ai-new コマンド or 初回起動）
+          const newThread = createNewThread();
+          const allThreads = [newThread, ...restoredThreads];
 
-        currentThreadIdRef.current = newThread.id;
-        messagesRef.current = [];
-        setThreads(allThreads);
-        setCurrentThreadId(newThread.id);
-        setMessages([]);
-        updateCache(newThread.id, []);
+          currentThreadIdRef.current = newThread.id;
+          messagesRef.current = [];
+          setThreads(allThreads);
+          setCurrentThreadId(newThread.id);
+          setMessages([]);
+          updateCache(newThread.id, []);
 
-        // 既存スレッドのキャッシュを復元
-        for (const thread of restoredThreads) {
-          try {
-            const msgs = await loadMessages(thread.id);
-            updateCache(thread.id, msgs);
-          } catch {
-            // サイレント失敗
+          // 既存スレッドのキャッシュを復元
+          for (const thread of restoredThreads) {
+            try {
+              const msgs = await loadMessages(thread.id);
+              updateCache(thread.id, msgs);
+            } catch {
+              // サイレント失敗
+            }
+          }
+
+          await saveThreads(allThreads);
+          await saveCurrentThreadId(newThread.id);
+        } else {
+          // 前回の会話を復元（ask-ai コマンド）
+          const savedThreadId = await loadCurrentThreadId();
+          const targetId =
+            savedThreadId && restoredThreads.some((t) => t.id === savedThreadId)
+              ? savedThreadId
+              : restoredThreads[0].id;
+
+          setThreads(restoredThreads);
+          setCurrentThreadId(targetId);
+          currentThreadIdRef.current = targetId;
+
+          // 全スレッドのキャッシュを復元
+          for (const thread of restoredThreads) {
+            try {
+              const msgs = await loadMessages(thread.id);
+              updateCache(thread.id, msgs);
+              if (thread.id === targetId) {
+                messagesRef.current = msgs;
+                setMessages(msgs);
+              }
+            } catch {
+              // サイレント失敗
+            }
           }
         }
-
-        await saveThreads(allThreads);
-        await saveCurrentThreadId(newThread.id);
       } catch {
         await showToast({
           style: Toast.Style.Failure,

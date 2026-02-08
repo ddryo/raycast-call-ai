@@ -15,6 +15,12 @@
       "title": "Ask AI",
       "description": "AI とチャットで会話する",
       "mode": "view"
+    },
+    {
+      "name": "ask-ai-new",
+      "title": "Ask AI (New)",
+      "description": "新しい会話で AI とチャットを始める",
+      "mode": "view"
     }
   ],
   "preferences": [

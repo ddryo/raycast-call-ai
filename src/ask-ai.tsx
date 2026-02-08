@@ -90,7 +90,7 @@ function MultiLineForm({
   );
 }
 
-export default function AskAI() {
+export default function AskAI({ startNew = false }: { startNew?: boolean } = {}) {
   const {
     isLoading,
     statusText,
@@ -102,7 +102,7 @@ export default function AskAI() {
     messageCache,
     selectThread,
     loadThreadMessages,
-  } = useConversation();
+  } = useConversation({ startNew });
   const [searchText, setSearchText] = useState("");
   const [focusTarget, setFocusTarget] = useState<string | undefined>(undefined);
 
