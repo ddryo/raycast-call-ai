@@ -28,6 +28,8 @@ declare namespace Preferences {
   export type AskAiNew = ExtensionPreferences & {}
   /** Preferences accessible in the `create-ai-command` command */
   export type CreateAiCommand = ExtensionPreferences & {}
+  /** Preferences accessible in the `ai-commands` command */
+  export type AiCommands = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
@@ -37,5 +39,7 @@ declare namespace Arguments {
   export type AskAiNew = {}
   /** Arguments passed to the `create-ai-command` command */
   export type CreateAiCommand = {}
+  /** Arguments passed to the `ai-commands` command */
+  export type AiCommands = {}
 }
 

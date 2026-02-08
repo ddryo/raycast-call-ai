@@ -27,6 +27,12 @@
       "title": "Create AI Command",
       "description": "AI カスタムコマンドを作成する",
       "mode": "view"
+    },
+    {
+      "name": "ai-commands",
+      "title": "AI Commands",
+      "description": "AI カスタムコマンドの一覧管理",
+      "mode": "view"
     }
   ],
   "preferences": [
