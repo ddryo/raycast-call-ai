@@ -80,7 +80,7 @@ export default function CreateAICommand() {
 
     await showToast({
       style: Toast.Style.Success,
-      title: "カスタムコマンドを作成しました",
+      title: "カスタムプロンプトを作成しました",
     });
 
     pop();
@@ -91,7 +91,7 @@ export default function CreateAICommand() {
       actions={
         <ActionPanel>
           <Action.SubmitForm
-            title="Create Command"
+            title="Create Prompt"
             icon={Icon.PlusCircle}
             onSubmit={handleSubmit}
           />
@@ -101,7 +101,7 @@ export default function CreateAICommand() {
       <Form.TextField
         id="name"
         title="Name"
-        placeholder="コマンド名を入力..."
+        placeholder="プロンプト名を入力..."
       />
       <Form.TextArea
         id="systemPrompt"

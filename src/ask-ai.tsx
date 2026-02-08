@@ -216,7 +216,7 @@ export default function AskAI(
     return currentThread?.customCommandId ?? "";
   }
 
-  /** ドロップダウンでカスタムコマンドを切り替えた時 */
+  /** ドロップダウンでカスタムプロンプトを切り替えた時 */
   async function handleDropdownChange(value: string) {
     if (!selectedThreadId) return;
     const newCustomCommandId = value === "" ? undefined : value;
@@ -235,7 +235,7 @@ export default function AskAI(
       onSelectionChange={handleSelectionChange}
       searchBarAccessory={
         <List.Dropdown
-          tooltip="カスタムコマンド"
+          tooltip="カスタムプロンプト"
           value={getCurrentCustomCommandId()}
           onChange={handleDropdownChange}
         >

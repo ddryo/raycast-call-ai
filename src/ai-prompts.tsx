@@ -74,7 +74,7 @@ interface EditFormValues {
   icon: string;
 }
 
-/** カスタムコマンド編集フォーム */
+/** カスタムプロンプト編集フォーム */
 function EditCommandForm({
   command,
   onUpdate,
@@ -113,7 +113,7 @@ function EditCommandForm({
 
     await showToast({
       style: Toast.Style.Success,
-      title: "カスタムコマンドを更新しました",
+      title: "カスタムプロンプトを更新しました",
     });
 
     pop();
@@ -124,7 +124,7 @@ function EditCommandForm({
       actions={
         <ActionPanel>
           <Action.SubmitForm
-            title="Update Command"
+            title="Update Prompt"
             icon={Icon.Pencil}
             onSubmit={handleSubmit}
           />
@@ -134,7 +134,7 @@ function EditCommandForm({
       <Form.TextField
         id="name"
         title="Name"
-        placeholder="コマンド名を入力..."
+        placeholder="プロンプト名を入力..."
         defaultValue={command.name}
       />
       <Form.TextArea
@@ -171,7 +171,7 @@ function EditCommandForm({
   );
 }
 
-/** カスタムコマンド新規作成フォーム */
+/** カスタムプロンプト新規作成フォーム */
 function CreateCommandForm({
   onAdd,
 }: {
@@ -194,7 +194,7 @@ function CreateCommandForm({
     };
 
     await onAdd(command);
-    await showToast({ style: Toast.Style.Success, title: "カスタムコマンドを作成しました" });
+    await showToast({ style: Toast.Style.Success, title: "カスタムプロンプトを作成しました" });
     pop();
   }
 
@@ -202,11 +202,11 @@ function CreateCommandForm({
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Create Command" icon={Icon.PlusCircle} onSubmit={handleSubmit} />
+          <Action.SubmitForm title="Create Prompt" icon={Icon.PlusCircle} onSubmit={handleSubmit} />
         </ActionPanel>
       }
     >
-      <Form.TextField id="name" title="Name" placeholder="コマンド名を入力..." />
+      <Form.TextField id="name" title="Name" placeholder="プロンプト名を入力..." />
       <Form.TextArea id="systemPrompt" title="System Prompt" placeholder="システムプロンプトを入力..." />
       <Form.Dropdown id="model" title="Model" defaultValue="">
         {MODEL_OPTIONS.map((opt) => (
@@ -227,7 +227,7 @@ export default function AICommands() {
   const { commands, isLoading, addCommand, updateCommand, removeCommand } =
     useCustomCommands();
 
-  /** カスタムコマンドで会話を開始する */
+  /** カスタムプロンプトで会話を開始する */
   async function handleStartConversation(command: CustomCommand) {
     await launchCommand({
       name: "ask-ai",
@@ -236,10 +236,10 @@ export default function AICommands() {
     });
   }
 
-  /** カスタムコマンドを削除する（確認ダイアログ付き） */
+  /** カスタムプロンプトを削除する（確認ダイアログ付き） */
   async function handleDelete(command: CustomCommand) {
     const confirmed = await confirmAlert({
-      title: "カスタムコマンドを削除しますか?",
+      title: "カスタムプロンプトを削除しますか?",
       message: `「${command.name}」を削除します。この操作は取り消せません。`,
       primaryAction: {
         title: "削除",
@@ -251,7 +251,7 @@ export default function AICommands() {
     await removeCommand(command.id);
     await showToast({
       style: Toast.Style.Success,
-      title: "カスタムコマンドを削除しました",
+      title: "カスタムプロンプトを削除しました",
     });
   }
 
@@ -272,7 +272,7 @@ export default function AICommands() {
             actions={
               <ActionPanel>
                 <Action.Push
-                  title="Edit Command"
+                  title="Edit Prompt"
                   icon={Icon.Pencil}
                   target={
                     <EditCommandForm
@@ -288,13 +288,13 @@ export default function AICommands() {
                   onAction={() => handleStartConversation(command)}
                 />
                 <Action.Push
-                  title="Create Command"
+                  title="Create Prompt"
                   icon={Icon.PlusCircle}
                   shortcut={{ modifiers: ["cmd"], key: "n" }}
                   target={<CreateCommandForm onAdd={addCommand} />}
                 />
                 <Action
-                  title="Delete Command"
+                  title="Delete Prompt"
                   icon={Icon.Trash}
                   style={Action.Style.Destructive}
                   shortcut={{ modifiers: ["ctrl"], key: "x" }}
@@ -306,12 +306,12 @@ export default function AICommands() {
         ))}
       <List.Item
         key="__create__"
-        title="新規コマンドを作成..."
+        title="新規プロンプトを作成..."
         icon={Icon.PlusCircle}
         actions={
           <ActionPanel>
             <Action.Push
-              title="Create Command"
+              title="Create Prompt"
               icon={Icon.PlusCircle}
               target={<CreateCommandForm onAdd={addCommand} />}
             />

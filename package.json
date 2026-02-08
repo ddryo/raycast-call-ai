@@ -23,15 +23,15 @@
       "mode": "view"
     },
     {
-      "name": "create-ai-command",
-      "title": "Create AI Command",
-      "description": "AI カスタムコマンドを作成する",
+      "name": "create-ai-prompt",
+      "title": "Create AI Prompt",
+      "description": "AI カスタムプロンプトを作成する",
       "mode": "view"
     },
     {
-      "name": "ai-commands",
-      "title": "AI Commands",
-      "description": "AI カスタムコマンドの一覧管理",
+      "name": "ai-prompts",
+      "title": "AI Prompts",
+      "description": "AI カスタムプロンプトの一覧管理",
       "mode": "view"
     }
   ],
