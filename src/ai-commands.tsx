@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   Action,
   ActionPanel,
@@ -170,8 +171,60 @@ function EditCommandForm({
   );
 }
 
+/** カスタムコマンド新規作成フォーム */
+function CreateCommandForm({
+  onAdd,
+}: {
+  onAdd: (command: CustomCommand) => Promise<void>;
+}) {
+  const { pop } = useNavigation();
+
+  async function handleSubmit(values: EditFormValues) {
+    if (!values.name.trim()) {
+      await showToast({ style: Toast.Style.Failure, title: "名前を入力してください" });
+      return;
+    }
+
+    const command: CustomCommand = {
+      id: randomUUID(),
+      name: values.name.trim(),
+      systemPrompt: values.systemPrompt?.trim() ?? "",
+      model: values.model || undefined,
+      icon: values.icon || undefined,
+    };
+
+    await onAdd(command);
+    await showToast({ style: Toast.Style.Success, title: "カスタムコマンドを作成しました" });
+    pop();
+  }
+
+  return (
+    <Form
+      actions={
+        <ActionPanel>
+          <Action.SubmitForm title="Create Command" icon={Icon.PlusCircle} onSubmit={handleSubmit} />
+        </ActionPanel>
+      }
+    >
+      <Form.TextField id="name" title="Name" placeholder="コマンド名を入力..." />
+      <Form.TextArea id="systemPrompt" title="System Prompt" placeholder="システムプロンプトを入力..." />
+      <Form.Dropdown id="model" title="Model" defaultValue="">
+        {MODEL_OPTIONS.map((opt) => (
+          <Form.Dropdown.Item key={opt.value} title={opt.title} value={opt.value} />
+        ))}
+      </Form.Dropdown>
+      <Form.Dropdown id="icon" title="Icon" defaultValue="">
+        <Form.Dropdown.Item title="Default" value="" icon={Icon.Bubble} />
+        {ICON_OPTIONS.map((opt) => (
+          <Form.Dropdown.Item key={opt.value} title={opt.title} value={opt.value} icon={opt.icon} />
+        ))}
+      </Form.Dropdown>
+    </Form>
+  );
+}
+
 export default function AICommands() {
-  const { commands, isLoading, updateCommand, removeCommand } =
+  const { commands, isLoading, addCommand, updateCommand, removeCommand } =
     useCustomCommands();
 
   /** カスタムコマンドで会話を開始する */
@@ -207,8 +260,17 @@ export default function AICommands() {
       {commands.length === 0 && !isLoading ? (
         <List.EmptyView
           title="カスタムコマンドがありません"
-          description="Create AI Command で作成してください。"
+          description="Enter キーで作成できます。"
           icon={Icon.PlusCircle}
+          actions={
+            <ActionPanel>
+              <Action.Push
+                title="Create Command"
+                icon={Icon.PlusCircle}
+                target={<CreateCommandForm onAdd={addCommand} />}
+              />
+            </ActionPanel>
+          }
         />
       ) : (
         commands.map((command) => (
@@ -240,6 +302,12 @@ export default function AICommands() {
                   icon={Icon.Message}
                   shortcut={{ modifiers: ["cmd"], key: "return" }}
                   onAction={() => handleStartConversation(command)}
+                />
+                <Action.Push
+                  title="Create Command"
+                  icon={Icon.PlusCircle}
+                  shortcut={{ modifiers: ["cmd"], key: "n" }}
+                  target={<CreateCommandForm onAdd={addCommand} />}
                 />
                 <Action
                   title="Delete Command"
