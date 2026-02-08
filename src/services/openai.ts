@@ -180,17 +180,11 @@ export async function createChatCompletion(
       usedWebSearch = true;
       onWebSearch?.();
     }
-    if (
-      event.type === "response.output_text.delta" &&
-      "delta" in event
-    ) {
+    if (event.type === "response.output_text.delta" && "delta" in event) {
       text += (event as { delta: string }).delta;
       onDelta?.(text);
     }
-    if (
-      event.type === "response.completed" &&
-      "response" in event
-    ) {
+    if (event.type === "response.completed" && "response" in event) {
       resolvedModel =
         (event.response as { model?: string }).model ?? selectedModel;
     }

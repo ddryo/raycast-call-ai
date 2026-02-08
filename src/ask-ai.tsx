@@ -42,7 +42,9 @@ function buildConversationMarkdown(
       return `**You**\n\n${quoted}`;
     }
     // assistant: 先頭のタグ行（モデル名・Web検索）を抽出して AI ラベルの横に移動
-    const tagMatch = msg.content.match(/^(`[^`]+`(?:\s+`[^`]+`)*)\n\n([\s\S]*)$/);
+    const tagMatch = msg.content.match(
+      /^(`[^`]+`(?:\s+`[^`]+`)*)\n\n([\s\S]*)$/,
+    );
     if (tagMatch) {
       return `**AI** ${tagMatch[1]}\n\n${tagMatch[2]}`;
     }
@@ -108,7 +110,9 @@ function MultiLineForm({
   );
 }
 
-export default function AskAI({ startNew = false }: { startNew?: boolean } = {}) {
+export default function AskAI({
+  startNew = false,
+}: { startNew?: boolean } = {}) {
   const {
     isLoading,
     statusText,
@@ -203,67 +207,70 @@ export default function AskAI({ startNew = false }: { startNew?: boolean } = {})
             new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
         )
         .map((thread) => {
-        const cachedMessages = messageCache[thread.id];
-        const msgCount = cachedMessages ? cachedMessages.length : 0;
-        const lastResponse = getLastAssistantMessage(cachedMessages);
+          const cachedMessages = messageCache[thread.id];
+          const msgCount = cachedMessages ? cachedMessages.length : 0;
+          const lastResponse = getLastAssistantMessage(cachedMessages);
 
-        return (
-          <List.Item
-            key={thread.id}
-            id={thread.id}
-            title={thread.title}
-            subtitle={msgCount > 0 ? `${msgCount} messages` : undefined}
-            icon={Icon.Bubble}
-            accessories={[{ text: formatDateTime(thread.updatedAt) }]}
-            detail={
-              <List.Item.Detail
-                markdown={buildConversationMarkdown(cachedMessages, thread.id === loadingThreadId ? statusText : null)}
-              />
-            }
-            actions={
-              <ActionPanel>
-                <Action
-                  title="Send Message"
-                  icon={Icon.Message}
-                  onAction={handleSend}
+          return (
+            <List.Item
+              key={thread.id}
+              id={thread.id}
+              title={thread.title}
+              subtitle={msgCount > 0 ? `${msgCount} messages` : undefined}
+              icon={Icon.Bubble}
+              accessories={[{ text: formatDateTime(thread.updatedAt) }]}
+              detail={
+                <List.Item.Detail
+                  markdown={buildConversationMarkdown(
+                    cachedMessages,
+                    thread.id === loadingThreadId ? statusText : null,
+                  )}
                 />
-                {lastResponse && (
-                  <Action.CopyToClipboard
-                    title="Copy Last Response"
-                    content={lastResponse}
-                    shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+              }
+              actions={
+                <ActionPanel>
+                  <Action
+                    title="Send Message"
+                    icon={Icon.Message}
+                    onAction={handleSend}
                   />
-                )}
-                <Action.Push
-                  title="Multiline Input"
-                  icon={Icon.TextDocument}
-                  shortcut={{ modifiers: ["cmd"], key: "l" }}
-                  target={<MultiLineForm onSend={sendMessage} />}
-                />
-                <Action
-                  title="New Conversation"
-                  icon={Icon.PlusCircle}
-                  shortcut={{ modifiers: ["cmd"], key: "n" }}
-                  onAction={handleCreateThread}
-                />
-                <Action
-                  title="Clear Conversation"
-                  icon={Icon.XMarkCircle}
-                  shortcut={{ modifiers: ["cmd", "shift"], key: "backspace" }}
-                  onAction={handleClearConversation}
-                />
-                <Action
-                  title="Delete Conversation"
-                  icon={Icon.Trash}
-                  style={Action.Style.Destructive}
-                  shortcut={{ modifiers: ["ctrl"], key: "x" }}
-                  onAction={() => handleDeleteThread(thread.id)}
-                />
-              </ActionPanel>
-            }
-          />
-        );
-      })}
+                  {lastResponse && (
+                    <Action.CopyToClipboard
+                      title="Copy Last Response"
+                      content={lastResponse}
+                      shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+                    />
+                  )}
+                  <Action.Push
+                    title="Multiline Input"
+                    icon={Icon.TextDocument}
+                    shortcut={{ modifiers: ["cmd"], key: "l" }}
+                    target={<MultiLineForm onSend={sendMessage} />}
+                  />
+                  <Action
+                    title="New Conversation"
+                    icon={Icon.PlusCircle}
+                    shortcut={{ modifiers: ["cmd"], key: "n" }}
+                    onAction={handleCreateThread}
+                  />
+                  <Action
+                    title="Clear Conversation"
+                    icon={Icon.XMarkCircle}
+                    shortcut={{ modifiers: ["cmd", "shift"], key: "backspace" }}
+                    onAction={handleClearConversation}
+                  />
+                  <Action
+                    title="Delete Conversation"
+                    icon={Icon.Trash}
+                    style={Action.Style.Destructive}
+                    shortcut={{ modifiers: ["ctrl"], key: "x" }}
+                    onAction={() => handleDeleteThread(thread.id)}
+                  />
+                </ActionPanel>
+              }
+            />
+          );
+        })}
     </List>
   );
 }

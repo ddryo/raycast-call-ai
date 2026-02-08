@@ -13,7 +13,9 @@ type ExtensionPreferences = {
   /** Model - 使用する GPT モデル */
   "model": "gpt-4.1-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-5-nano" | "gpt-5-mini" | "gpt-5.2",
   /** Reasoning Effort（推論モデル向け） - GPT-5 系モデルの推論レベル（4.1 系では無視されます） */
-  "reasoningEffort": "low" | "medium" | "high"
+  "reasoningEffort": "low" | "medium" | "high",
+  /** System Prompt - デフォルトのシステムプロンプト（全会話で送信時に適用されます） */
+  "systemPrompt"?: string
 }
 
 /** Preferences accessible in all the extension's commands */

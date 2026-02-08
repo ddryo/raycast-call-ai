@@ -200,8 +200,24 @@ export function useConversation(options?: { startNew?: boolean }) {
     try {
       // トークン上限チェック: 超過時は古いメッセージを切り捨て
       const prefs = getPreferenceValues<Preferences>();
+
+      // システムプロンプトの注入（API送信時のみ、LocalStorageには保存しない）
+      const systemPrompt = prefs.systemPrompt?.trim();
+      const messagesForApi = systemPrompt
+        ? [
+            {
+              id: "system-prompt",
+              threadId,
+              role: "system" as const,
+              content: systemPrompt,
+              createdAt: new Date(0).toISOString(),
+            },
+            ...nextMessages,
+          ]
+        : nextMessages;
+
       const { trimmed, wasTrimmed, exceedsLimit } = trimMessagesForContext(
-        nextMessages,
+        messagesForApi,
         prefs.model,
       );
 
@@ -275,18 +291,27 @@ export function useConversation(options?: { startNew?: boolean }) {
           latestText = textSoFar;
           const now = Date.now();
           if (now - lastFlush >= THROTTLE_MS) {
-            if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+            if (flushTimer) {
+              clearTimeout(flushTimer);
+              flushTimer = null;
+            }
             flushToUI();
           } else if (!flushTimer) {
-            flushTimer = setTimeout(() => {
-              flushTimer = null;
-              flushToUI();
-            }, THROTTLE_MS - (now - lastFlush));
+            flushTimer = setTimeout(
+              () => {
+                flushTimer = null;
+                flushToUI();
+              },
+              THROTTLE_MS - (now - lastFlush),
+            );
           }
         },
       );
 
-      if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+      }
 
       const tags = [
         `\`${result.model}\``,
