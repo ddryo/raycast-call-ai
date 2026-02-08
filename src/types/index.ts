@@ -16,6 +16,16 @@ export interface Thread {
   title: string;
   createdAt: string; // ISO 8601
   updatedAt: string; // ISO 8601
+  customCommandId?: string;
+}
+
+// カスタムコマンド
+export interface CustomCommand {
+  id: string; // UUID v4
+  name: string;
+  systemPrompt: string;
+  model?: string;
+  icon?: string; // Raycast Icon 名
 }
 
 // API エラー種別
@@ -38,4 +48,5 @@ export interface Preferences {
   apiKey: string;
   model: string;
   reasoningEffort: string;
+  systemPrompt?: string;
 }
