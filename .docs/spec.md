@@ -41,7 +41,7 @@ Raycast 上で OpenAI API を利用したチャットインターフェースを
 |----------|----------|----------|------|
 | Phase 1 | 単一会話での送受信・表示・保存 | FR-001 ~ FR-009 | 完了 |
 | Phase 2 | 複数会話スレッド管理 | FR-010 ~ FR-012 | 完了 |
-| Phase 3 | システムプロンプト & カスタムコマンド | FR-013 ~ FR-018 | 未着手 |
+| Phase 3 | システムプロンプト & カスタムコマンド | FR-013 ~ FR-018 | 完了 |
 
 
 ## 3. 技術スタック
@@ -85,36 +85,40 @@ ask-ai/
 
 ```
 ask-ai.tsx（メインコマンド）
-  ├── AskAI()                   … デフォルトエクスポート。List + Detail UI
+  ├── AskAI(props: LaunchProps)  … デフォルトエクスポート。スレッド一体型 List + Detail UI
+  │     ├── props:
+  │     │     ├── startNew?: boolean       … 新規会話で開始するか（ask-ai-new 経由）
+  │     │     └── launchContext?: { customCommandId?: string }
+  │     │           └── カスタムコマンド一覧からの起動時に customCommandId を受け取る
   │     ├── SearchBar 入力 → handleSend() でメッセージ送信
   │     │     └── isLoading 中は送信をガード（二重送信防止）
   │     ├── List.Dropdown（searchBarAccessory）
   │     │     └── カスタムコマンド切替ドロップダウン
   │     │           ├── 「デフォルト」（Preferences の systemPrompt を使用）
   │     │           └── ユーザー作成の各カスタムコマンド
-  │     ├── List.EmptyView      … 会話がない初期状態の案内表示
+  │     ├── List（isShowingDetail=true）
+  │     │     └── スレッド単位で List.Item を表示（updatedAt 降順）
+  │     │           ├── title: スレッドタイトル
+  │     │           ├── subtitle: メッセージ数（例: "3 messages"）
+  │     │           ├── accessories: updatedAt（formatDateTime 形式）
+  │     │           └── Detail: スレッド全体の会話を Markdown で表示
+  │     │                 └── buildConversationMarkdown() で会話を整形
+  │     │                       ├── ユーザーメッセージ: 引用ブロック（> ）で表示
+  │     │                       ├── AI メッセージ: モデル名タグ付きで表示
+  │     │                       └── Q&A セット間を区切り線（---）で区切り
+  │     ├── onSelectionChange → handleSelectionChange()
+  │     │     └── フォーカス変更でスレッド切替（selectThread + loadThreadMessages）
   │     ├── handleClearConversation() … confirmAlert → clearMessages → 成功Toast
   │     └── ActionPanel
   │           ├── Action "Send Message"            … Enter で送信
-  │           ├── Action.CopyToClipboard "Copy Content" (Cmd+Shift+C)
-  │           │     └── 選択中メッセージの content をクリップボードにコピー
+  │           ├── Action.CopyToClipboard "Copy Last Response" (Cmd+Shift+C)
+  │           │     └── 最後の AI レスポンスの content をクリップボードにコピー
   │           ├── Action.Push "Multiline Input" (Cmd+L)
   │           │     └── MultiLineForm              … 複数行入力フォーム
-  │           ├── Action.Push "Conversation List" (Cmd+T)
-  │           │     └── ThreadList                 … スレッド一覧画面へ遷移
   │           ├── Action "New Conversation" (Cmd+N)
   │           │     └── createThread() で新規スレッドを作成
-  │           └── Action "Clear Conversation" (Cmd+Shift+Backspace, Destructive)
-  │                 └── handleClearConversation() を呼び出し
-  │
-  ├── ThreadList({ threads, currentThreadId, switchThread, deleteThread })
-  │     … スレッド一覧コンポーネント（Action.Push の遷移先）
-  │     ├── List で全スレッドを一覧表示
-  │     │     ├── 現在のスレッド: CheckCircle アイコン（Green）
-  │     │     └── その他のスレッド: Circle アイコン
-  │     ├── accessories に updatedAt を表示（formatDateTime 形式）
-  │     └── ActionPanel
-  │           ├── Action "Open Conversation"  … switchThread → pop() でメインに戻る
+  │           ├── Action "Clear Conversation" (Cmd+Shift+Backspace)
+  │           │     └── handleClearConversation() を呼び出し
   │           └── Action "Delete Conversation" (Ctrl+X, Destructive)
   │                 └── confirmAlert → deleteThread → 成功Toast
   │
@@ -122,49 +126,73 @@ ask-ai.tsx（メインコマンド）
   │     └── 送信後 pop() でメインビューに戻る
   │
   ├── ヘルパー関数
-  │     ├── truncate()           … メッセージ短縮表示（60文字上限）
-  │     ├── roleLabel()          … role → 表示名変換（User / AI / System）
-  │     ├── formatTime()         … ISO 8601 → HH:MM 形式
-  │     └── formatDateTime()     … ISO 8601 → "MMM D, HH:MM" 形式（スレッド一覧用）
+  │     ├── formatDateTime()          … ISO 8601 → "m/d HH:MM" 形式
+  │     ├── buildConversationMarkdown() … メッセージ配列を Markdown テキストに変換
+  │     └── getLastAssistantMessage() … 最後の AI レスポンスを取得
   │
   ├── useConversation（カスタムフック）
+  │     ├── options:
+  │     │     ├── startNew?: boolean          … 新規会話で開始するか
+  │     │     └── customCommandId?: string    … 初期カスタムコマンドID
   │     ├── state:
   │     │     ├── messages (Message[])        … 現在のスレッドのメッセージ一覧
   │     │     ├── isLoading (boolean)         … ローディング状態
   │     │     ├── threads (Thread[])          … スレッド一覧
-  │     │     └── currentThreadId (string)    … 現在選択中のスレッドID
+  │     │     ├── currentThreadId (string)    … 現在選択中のスレッドID
+  │     │     ├── messageCache (Record<string, Message[]>) … スレッドIDごとのメッセージキャッシュ
+  │     │     ├── statusText (string | null)  … ストリーミング中のステータス表示（「考え中...」「Web検索中...」）
+  │     │     └── loadingThreadId (string | null) … ストリーミング中のスレッドID
   │     ├── refs:
   │     │     ├── messagesRef       … 最新 messages 参照
   │     │     ├── isLoadingRef      … 同期的ロック用
   │     │     ├── threadsRef        … 最新 threads 参照
-  │     │     └── currentThreadIdRef … 最新 currentThreadId 参照
+  │     │     ├── currentThreadIdRef … 最新 currentThreadId 参照
+  │     │     └── messageCacheRef   … 最新 messageCache 参照
   │     ├── sendMessage(content):
   │     │     1. isLoadingRef で同期的に二重送信チェック＆ロック
-  │     │     2. ユーザーメッセージ追加
+  │     │     2. ユーザーメッセージ追加 + messageCache 更新
   │     │     3. 初回送信時: スレッドタイトルを先頭30文字で自動生成
-  │     │     4. trimMessagesForContext() でトークン上限チェック
+  │     │     4. カスタムコマンドの取得（Thread.customCommandId → getCustomCommand）
+  │     │     5. システムプロンプトの決定: CustomCommand > Preferences
+  │     │     6. モデルの決定: CustomCommand.model > Preferences.model
+  │     │     7. システムプロンプトを API 送信用メッセージ配列の先頭に注入（LocalStorage には保存しない）
+  │     │     8. trimMessagesForContext() でトークン上限チェック
   │     │        （超過時は古いメッセージを切り捨て + Toast 通知）
-  │     │     5. API呼び出し → assistant応答追加
-  │     │     6. スレッドの updatedAt を更新
-  │     │     7. 保存（失敗時 Toast 通知、state は維持）
-  │     │     8. エラー時は classifyError で分類し Toast 表示
-  │     │     9. finally で isLoadingRef / isLoading を解除
-  │     ├── clearMessages(): ストレージ削除 + state リセット（送信中は無効化）
-  │     ├── createThread(): 新規スレッド作成 + 切替（先頭に追加）
-  │     ├── switchThread(threadId): スレッド切替 + メッセージ復元
+  │     │     9. ストリーミング API 呼び出し → 逐次 UI 更新（スロットリング: 150ms）
+  │     │    10. 完了後 assistant メッセージにモデル名タグ・Web検索タグを付与して追加
+  │     │    11. スレッドの updatedAt を更新
+  │     │    12. 保存（失敗時 Toast 通知、state は維持）
+  │     │    13. エラー時は classifyError で分類し Toast 表示
+  │     │    14. finally で isLoadingRef / isLoading / statusText / loadingThreadId を解除
+  │     ├── clearMessages(): ストレージ削除 + state リセット + キャッシュ更新（送信中は無効化）
+  │     ├── createThread(customCommandId?): 新規スレッド作成 + 切替（先頭に追加、任意で customCommandId を紐づけ）
+  │     ├── selectThread(threadId): フォーカス変更時の軽量切替（ref のみ更新、再レンダーなし）
+  │     ├── loadThreadMessages(threadId): フォーカス中スレッドのメッセージをオンデマンドでロード（キャッシュ済みの場合はスキップ）
+  │     ├── updateThreadCustomCommand(threadId, customCommandId?): Thread の customCommandId を更新
   │     ├── deleteThread(threadId): スレッド削除
   │     │     ├── 全スレッド削除時: 新規スレッドを自動作成
   │     │     ├── 現在のスレッド削除時: 先頭スレッドに自動切替
   │     │     └── 別のスレッド削除時: 現在のスレッドを維持
   │     └── 起動時復元:
-  │           1. loadThreads() + loadCurrentThreadId() でスレッド情報を復元
-  │           2. threads が空の場合: デフォルトスレッドを自動作成
-  │           3. currentThreadId が threads 内に存在しない場合: 先頭にフォールバック
-  │           4. loadMessages() で選択中スレッドのメッセージを復元
-  │           5. 失敗時 Toast 通知、finally で isLoadingRef / isLoading を false に設定
+  │           ├── startNew=true の場合:
+  │           │     1. loadThreads() で既存スレッドを取得
+  │           │     2. 新規スレッドを作成（customCommandId 付き）し先頭に追加
+  │           │     3. 全既存スレッドのメッセージをキャッシュに復元
+  │           ├── startNew=false の場合:
+  │           │     1. loadThreads() + loadCurrentThreadId() でスレッド情報を復元
+  │           │     2. threads が空の場合: 新規スレッドを自動作成
+  │           │     3. currentThreadId が threads 内に存在しない場合: 先頭にフォールバック
+  │           │     4. 全スレッドのメッセージをキャッシュに復元
+  │           └── 失敗時 Toast 通知、finally で isLoadingRef / isLoading を false に設定
   │
   ├── openai.ts（API通信層）
-  │     ├── createChatCompletion(): 全履歴を送信し応答を取得
+  │     ├── createChatCompletion(messages, model?, onWebSearch?, onDelta?):
+  │     │     ストリーミングで応答を取得し ChatCompletionResult を返す
+  │     │     ├── system メッセージを instructions パラメータに分離
+  │     │     ├── 推論モデル（GPT-5 系）の場合は reasoning.effort を設定
+  │     │     ├── web_search_preview ツールを有効化
+  │     │     ├── onWebSearch コールバック: Web 検索開始時に呼び出し
+  │     │     └── onDelta コールバック: テキスト受信ごとに累積テキストを通知
   │     ├── classifyError(): エラー分類（判定順序）
   │     │     1. APIConnectionTimeoutError → timeout
   │     │     2. APIConnectionError → network
@@ -177,7 +205,8 @@ ask-ai.tsx（メインコマンド）
   │           ├── モデルごとのコンテキスト上限を参照（MODEL_CONTEXT_LIMITS）
   │           ├── 応答バッファ（RESPONSE_BUFFER = 4096）を差し引き
   │           ├── system メッセージは常に保持
-  │           └── 最新のユーザーメッセージを必ず保持し、古い順にスキップ
+  │           ├── 最新のユーザーメッセージを必ず保持し、古い順にスキップ
+  │           └── トリミング後も超過する場合は exceedsLimit=true を返す
   │
   ├── conversation.ts（永続化層）
   │     ├── saveMessages(): LocalStorage にメッセージ配列を保存
@@ -215,41 +244,63 @@ ask-ai.tsx（メインコマンド）
   │           └── Action.SubmitForm → addCustomCommand() → 成功 Toast → pop()
   │
   └── ai-commands.tsx（カスタムコマンド一覧コマンド）
-        └── AICommands()           … List でカスタムコマンドを一覧管理
-              ├── List で全カスタムコマンドを表示
-              │     ├── title: コマンド名
-              │     ├── subtitle: システムプロンプト（切り詰め表示）
-              │     └── accessories: モデル名（設定時のみ）
-              └── ActionPanel
-                    ├── Action "Start Conversation"  … 選択したコマンドで ask-ai を開始
-                    ├── Action.Push "Edit Command"   … 編集フォームへ遷移
-                    └── Action "Delete Command" (Ctrl+X, Destructive)
-                          └── confirmAlert → deleteCustomCommand → 成功 Toast
+        ├── AICommands()           … List でカスタムコマンドを一覧管理
+        │     ├── List で全カスタムコマンドを表示
+        │     │     ├── title: コマンド名
+        │     │     ├── subtitle: システムプロンプト（切り詰め表示、60文字上限）
+        │     │     ├── icon: カスタムアイコン（未設定時は Bubble）
+        │     │     └── accessories: モデル名（設定時のみ）
+        │     ├── List.EmptyView … カスタムコマンドが0件時の案内表示
+        │     └── ActionPanel
+        │           ├── Action "Start Conversation"  … launchCommand で ask-ai を起動（customCommandId を launchContext で渡す）
+        │           ├── Action.Push "Edit Command"   … EditCommandForm へ遷移
+        │           └── Action "Delete Command" (Ctrl+X, Destructive)
+        │                 └── confirmAlert → removeCommand → 成功 Toast
+        │
+        └── EditCommandForm({ command, onUpdate })  … カスタムコマンド編集フォーム
+              ├── Form.TextField "Name"          … 既存値を defaultValue に設定
+              ├── Form.TextArea "System Prompt"  … 既存値を defaultValue に設定
+              ├── Form.Dropdown "Model"          … 既存値を defaultValue に設定
+              ├── Form.Dropdown "Icon"           … 既存値を defaultValue に設定
+              └── Action.SubmitForm → onUpdate() → 成功 Toast → pop()
 ```
 
 ### UI フロー
 
 #### 起動フロー
 1. コマンド起動 → `useConversation` が `isLoading = true` で初期化
-2. `loadThreads()` と `loadCurrentThreadId()` でスレッド情報を復元
-3. スレッドが0件の場合 → デフォルトスレッドを自動作成し永続化
-4. `currentThreadId` が存在しない or スレッド一覧に該当がない場合 → 先頭スレッドにフォールバックし永続化
-5. `loadMessages(currentThreadId)` で選択中スレッドの会話履歴を復元
-6. 復元成功 → `messages` に反映、`isLoading = false` → List に逆順（最新が上）で表示
-7. 復元失敗 → Toast でエラー通知し、空の会話として開始
+2. `loadThreads()` でスレッド一覧を復元
+3. `startNew = true`（ask-ai-new 経由 or launchContext あり）の場合:
+   - 新規スレッドを作成（customCommandId が渡されていれば紐づけ）し先頭に追加
+   - 全既存スレッドのメッセージを messageCache に復元
+4. `startNew = false`（通常の ask-ai 起動）の場合:
+   - `loadCurrentThreadId()` で前回のスレッドIDを復元
+   - スレッドが0件の場合 → 新規スレッドを自動作成し永続化
+   - `currentThreadId` が存在しない or スレッド一覧に該当がない場合 → 先頭スレッドにフォールバック
+   - 全スレッドのメッセージを messageCache に復元し、選択中スレッドは `messages` state にも反映
+5. 復元成功 → `isLoading = false` → List にスレッド一覧を updatedAt 降順で表示し、Detail に選択中スレッドの会話を表示
+6. 復元失敗 → Toast でエラー通知し、空の会話として開始
 
 #### メッセージ送信フロー（SearchBar）
 1. SearchBar にテキスト入力 → Enter キー押下
 2. `isLoadingRef` で同期的に二重送信チェック（送信中なら即 return）
 3. `isLoadingRef` をロックし、入力テキストを取得、SearchBar を空にする
-4. ユーザーメッセージを `messages` に追加 → `isLoading = true`
+4. ユーザーメッセージを `messages` に追加 + `messageCache` 更新 → `isLoading = true`、`statusText = "考え中..."`
 5. 初回送信時（既存メッセージ 0 件）: スレッドタイトルを先頭30文字で自動生成し保存
-6. `trimMessagesForContext()` でトークン上限チェック（超過時は古いメッセージを切り捨て + Toast 通知）
-7. OpenAI Responses API にトリミング済み会話履歴を送信（ストリーミング）
-8. ストリーミングで応答を受信し逐次表示 → 完了後 assistant メッセージを `messages` に追加、スレッドの `updatedAt` を更新
-9. LocalStorage に会話全体 + スレッド一覧を保存（保存失敗時は Toast で通知、state は維持）
-10. エラー発生時 → `classifyError()` でエラー種別を判定し、Toast で適切なメッセージを表示
-11. finally で `isLoadingRef` と `isLoading` を解除
+6. カスタムコマンドの取得: Thread の `customCommandId` がある場合、`getCustomCommand()` で取得（削除済みなら undefined にフォールバック）
+7. システムプロンプトの決定: CustomCommand の systemPrompt > Preferences の systemPrompt
+8. モデルの決定: CustomCommand.model > Preferences.model
+9. システムプロンプトが存在する場合、`role: "system"` メッセージとして API 送信用配列の先頭に注入（LocalStorage には保存しない）
+10. `trimMessagesForContext()` でトークン上限チェック（超過時は古いメッセージを切り捨て + Toast 通知、単一メッセージ超過時は送信中止）
+11. OpenAI Responses API にトリミング済み会話履歴をストリーミング送信
+    - 推論モデル（GPT-5 系）の場合は `reasoning.effort` を設定
+    - `web_search_preview` ツール有効
+12. ストリーミングで応答を受信し逐次表示（150ms スロットリング）
+    - Web 検索発生時: `statusText = "Web検索中..."`
+13. 完了後 assistant メッセージにモデル名タグ（``\`model\```）・Web検索タグ（``\`Web検索\```）を付与して `messages` に追加、スレッドの `updatedAt` を更新
+14. LocalStorage に会話全体 + スレッド一覧を保存（保存失敗時は Toast で通知、state は維持）
+15. エラー発生時 → `classifyError()` でエラー種別を判定し、Toast で適切なメッセージを表示
+16. finally で `isLoadingRef` / `isLoading` / `statusText` / `loadingThreadId` を解除
 
 #### メッセージ送信フロー（複数行入力）
 1. ActionPanel から `Multiline Input`（Cmd+L）を選択
@@ -264,26 +315,28 @@ ask-ai.tsx（メインコマンド）
 4. 成功 Toast（`Toast.Style.Success`、「会話をクリアしました」）を表示
 5. ユーザーがキャンセル → 何もせず終了
 
-#### メッセージコピー操作
-1. List 上で任意のメッセージを選択した状態で Cmd+Shift+C を押下
-2. `Action.CopyToClipboard` により、選択中メッセージの `content` がクリップボードにコピーされる
+#### レスポンスコピー操作
+1. List 上で任意のスレッドを選択した状態で Cmd+Shift+C を押下
+2. `getLastAssistantMessage()` で最後の AI レスポンスを取得し、`Action.CopyToClipboard` でクリップボードにコピーされる
+3. AI レスポンスが存在しない場合は、コピーアクション自体が非表示になる
 
 #### スレッド作成フロー
 1. ActionPanel から `New Conversation`（Cmd+N）を選択
-2. `createThread()` が呼び出され、新しい Thread オブジェクトを生成（UUID v4、タイトル「新しい会話」）
+2. `createThread(customCommandId?)` が呼び出され、新しい Thread オブジェクトを生成（UUID v4、タイトル「新しい会話」、任意で customCommandId を紐づけ）
 3. スレッド一覧の先頭に追加し、`currentThreadId` を新スレッドに切替
-4. メッセージを空にリセットし、LocalStorage にスレッド一覧と currentThreadId を保存
+4. メッセージを空にリセットし、messageCache に空配列を登録
+5. LocalStorage にスレッド一覧と currentThreadId を保存
+6. 作成した新規スレッドの ID を返却 → UI 側でフォーカスを移動（`focusTarget`）
 
-#### スレッド一覧・切替フロー
-1. ActionPanel から `Conversation List`（Cmd+T）を選択
-2. `Action.Push` で `ThreadList` コンポーネントに遷移
-3. 全スレッドを List 表示（現在のスレッドは CheckCircle + Green、その他は Circle アイコン）
-4. accessories にスレッドの更新日時（formatDateTime 形式）を表示
-5. スレッドを選択（Enter）→ `switchThread()` で切替 + `pop()` でメインビューに戻る
-6. 切替時: `isLoading = true` → `loadMessages()` でスレッドのメッセージを復元 → `isLoading = false`
+#### スレッド切替フロー
+1. メイン画面の List に全スレッドが updatedAt 降順で一体表示されている
+2. キーボードでフォーカスを移動すると `onSelectionChange` が発火
+3. `selectThread(threadId)` で ref のみ更新（再レンダーなし、軽量切替）
+4. `loadThreadMessages(threadId)` でキャッシュにないスレッドのメッセージをオンデマンドでロード
+5. Detail パネルに選択中スレッドの会話が即座に表示される（キャッシュ済みの場合）
 
 #### スレッド削除フロー
-1. `ThreadList` 上で対象スレッドを選択し、`Delete Conversation`（Ctrl+X）を選択
+1. メイン画面で対象スレッドを選択し、`Delete Conversation`（Ctrl+X）を選択
 2. `confirmAlert` で確認ダイアログを表示（「スレッドを削除しますか?」、Destructive スタイル）
 3. ユーザーが「削除」を選択 → `deleteThread()` を実行
    - メッセージを LocalStorage から削除
@@ -328,24 +381,30 @@ ask-ai.tsx（メインコマンド）
 
 #### カスタムコマンド一覧フロー
 1. 「AI Commands」コマンドを起動
-2. List で全カスタムコマンドを一覧表示
+2. List で全カスタムコマンドを一覧表示（0件時は EmptyView で案内表示）
 3. ActionPanel から以下の操作が可能:
-   - Start Conversation: 選択したカスタムコマンドで新規会話を開始（ask-ai を開き、Thread に customCommandId を紐づけ）
-   - Edit Command: 編集フォームへ遷移し、内容を更新
-   - Delete Command（Ctrl+X）: confirmAlert → 削除 → 成功 Toast
+   - Start Conversation: `launchCommand` で ask-ai を起動し、`launchContext: { customCommandId }` を渡す。ask-ai 側で新規スレッドを作成し customCommandId を紐づけて会話開始
+   - Edit Command: EditCommandForm（編集フォーム）へ Push 遷移し、内容を更新
+   - Delete Command（Ctrl+X）: confirmAlert → removeCommand → 成功 Toast
 
 #### カスタムコマンド切替フロー（チャット画面内）
 1. チャット画面の SearchBar 横に `List.Dropdown`（searchBarAccessory）が表示される
-2. 選択肢: 「デフォルト」 + ユーザー作成の各カスタムコマンド
-3. ドロップダウンで別のコマンドを選択 → 現在の Thread の `customCommandId` を更新
-4. 次回以降の送信から、選択したカスタムコマンドのシステムプロンプトとモデルが適用される
+2. 選択肢: 「デフォルト」（value=""） + ユーザー作成の各カスタムコマンド（value=command.id）
+3. ドロップダウンの表示値は、現在フォーカス中スレッドの `customCommandId` に連動
+4. ドロップダウンで別のコマンドを選択 → `updateThreadCustomCommand()` で現在の Thread の `customCommandId` を更新し LocalStorage に保存
+5. 次回以降の送信から、選択したカスタムコマンドのシステムプロンプトとモデルが適用される
 
 #### 表示仕様
-- メッセージは**逆順表示**（最新メッセージが List の先頭に表示される）
-- 会話が 1 件以上存在する場合のみ `isShowingDetail = true` で Detail パネルを表示
-- 会話が 0 件の場合は `List.EmptyView` で案内メッセージを表示
+- メイン画面はスレッド一体型の List + Detail レイアウト（`isShowingDetail = true` 常時有効）
+- List にはスレッド一覧を `updatedAt` 降順で表示（最新のスレッドが先頭）
+- 各 List.Item にはスレッドタイトル、メッセージ数（subtitle）、更新日時（accessories）を表示
+- Detail パネルには選択中スレッドの会話全体を Markdown で表示
+  - ユーザーメッセージ: 引用ブロック（`> `）として表示
+  - AI メッセージ: モデル名タグ・Web検索タグ付きで表示
+  - Q&A セット間を区切り線（`---`）で区切り
+  - メッセージ0件時は案内テキスト（「メッセージを入力して会話を始めましょう」）を表示
+- ストリーミング中は `statusText`（「考え中...」「Web検索中...」）を Detail 先頭にイタリック表示
 - `filtering = false` に設定し、SearchBar の入力をフィルタリングではなくメッセージ送信用途に使用
-- 各 List.Item には `roleLabel`（User / AI / System）と `truncate` で短縮した本文、`formatTime` で HH:MM 形式の時刻を表示
 
 
 ## 5. インターフェース
@@ -355,10 +414,12 @@ ask-ai.tsx（メインコマンド）
 | 項目 | 値 |
 |------|-----|
 | API | OpenAI Responses API（`client.responses.create`） |
-| モデル | `gpt-4.1-nano`（初期設定） |
+| モデル | `gpt-4.1-nano`（初期設定）。CustomCommand.model > Preferences.model の優先順位で決定 |
 | ストリーミング | 対応（`stream: true`） |
 | 認証 | Preferences API で取得した API キーを OpenAI クライアントに設定 |
 | 送信内容 | system メッセージを `instructions` に分離し、残りを `input` パラメータに渡す（トークン上限超過時は `trimMessagesForContext()` で古いメッセージを切り捨て） |
+| ツール | `web_search_preview` を有効化 |
+| 推論設定 | GPT-5 系モデルの場合、`reasoning.effort`（Preferences の `reasoningEffort`）を設定。4.1 系では無視 |
 
 ### データモデル
 
@@ -378,7 +439,7 @@ ask-ai.tsx（メインコマンド）
 
 | フィールド | 型 | 説明 |
 |----------|------|------|
-| id | string | スレッド固有ID（UUID v4、またはデフォルトスレッドの場合 `"default"`） |
+| id | string | スレッド固有ID（UUID v4） |
 | title | string | スレッド名（初期値「新しい会話」、初回メッセージ送信時に先頭30文字で自動生成） |
 | createdAt | string | 作成日時（ISO 8601） |
 | updatedAt | string | 最終更新日時（ISO 8601、メッセージ送受信のたびに更新） |
@@ -394,6 +455,15 @@ ask-ai.tsx（メインコマンド）
 | model? | string | 使用するモデル（任意。未指定時は Preferences.model を使用） |
 | icon? | string | Raycast Icon 名（任意。未指定時はデフォルトアイコン） |
 
+#### Preferences（TypeScript 型定義）
+
+| フィールド | 型 | 説明 |
+|----------|------|------|
+| apiKey | string | OpenAI API キー |
+| model | string | 使用する GPT モデル |
+| reasoningEffort | string | GPT-5 系モデルの推論レベル（"low" / "medium" / "high"） |
+| systemPrompt? | string | デフォルトのシステムプロンプト（任意） |
+
 ### LocalStorage キー設計
 
 | キー | 値の型 | 説明 |
@@ -403,7 +473,7 @@ ask-ai.tsx（メインコマンド）
 | `ask-ai:current-thread` | string | 現在選択中のスレッドID |
 | `ask-ai:custom-commands` | JSON string（CustomCommand[]） | カスタムコマンド一覧 |
 
-初回起動時はデフォルトスレッド（ID: `"default"`）が自動作成される。
+初回起動時（スレッドが0件の場合）は新規スレッド（UUID v4）が自動作成される。
 
 ### Preferences 設定
 
@@ -413,6 +483,7 @@ package.json の `preferences` セクションで宣言する。
 |------|------|-------|------|----------|
 | apiKey | password | OpenAI API Key | OpenAI の API キー | true |
 | model | dropdown | Model | 使用する GPT モデル（初期値: gpt-4.1-nano） | false |
+| reasoningEffort | dropdown | Reasoning Effort（推論モデル向け） | GPT-5 系モデルの推論レベル（low / medium / high）。4.1 系では無視される（初期値: medium） | false |
 | systemPrompt | textfield | System Prompt | デフォルトのシステムプロンプト。全会話で送信時に先頭注入される（任意。空欄時は注入なし） | false |
 
 
