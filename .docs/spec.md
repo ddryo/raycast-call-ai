@@ -166,7 +166,7 @@ ask-ai.tsx（メインコマンド）
   │     │    14. finally で isLoadingRef / isLoading / statusText / loadingThreadId を解除
   │     ├── clearMessages(): ストレージ削除 + state リセット + キャッシュ更新（送信中は無効化）
   │     ├── createThread(customCommandId?): 新規スレッド作成 + 切替（先頭に追加、任意で customCommandId を紐づけ）
-  │     ├── selectThread(threadId): フォーカス変更時の軽量切替（ref のみ更新、再レンダーなし）
+  │     ├── selectThread(threadId): フォーカス変更時のスレッド切替（currentThreadId の state 更新と永続化を実行）
   │     ├── loadThreadMessages(threadId): フォーカス中スレッドのメッセージをオンデマンドでロード（キャッシュ済みの場合はスキップ）
   │     ├── updateThreadCustomCommand(threadId, customCommandId?): Thread の customCommandId を更新
   │     ├── deleteThread(threadId): スレッド削除
@@ -331,7 +331,7 @@ ask-ai.tsx（メインコマンド）
 #### スレッド切替フロー
 1. メイン画面の List に全スレッドが updatedAt 降順で一体表示されている
 2. キーボードでフォーカスを移動すると `onSelectionChange` が発火
-3. `selectThread(threadId)` で ref のみ更新（再レンダーなし、軽量切替）
+3. `selectThread(threadId)` で currentThreadId の state 更新と current-thread 永続化を実行
 4. `loadThreadMessages(threadId)` でキャッシュにないスレッドのメッセージをオンデマンドでロード
 5. Detail パネルに選択中スレッドの会話が即座に表示される（キャッシュ済みの場合）
 
