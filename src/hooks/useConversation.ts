@@ -504,10 +504,14 @@ export function useConversation(options?: {
     }
   }, []);
 
-  // フォーカス変更時の軽量切り替え（ref のみ更新、再レンダーなし）
+  // フォーカス変更時のスレッド切り替え
   const selectThread = useCallback((threadId: string) => {
     currentThreadIdRef.current = threadId;
     messagesRef.current = messageCacheRef.current[threadId] ?? [];
+    setCurrentThreadId(threadId);
+    saveCurrentThreadId(threadId).catch(() => {
+      // サイレント失敗
+    });
   }, []);
 
   // フォーカス中のスレッドのメッセージをオンデマンドでロード

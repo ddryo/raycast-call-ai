@@ -145,6 +145,7 @@ export default function AskAI(
   const { commands: customCommands } = useCustomCommands();
   const [searchText, setSearchText] = useState("");
   const [focusTarget, setFocusTarget] = useState<string | undefined>(undefined);
+  const [selectedThreadId, setSelectedThreadId] = useState<string | undefined>(undefined);
 
   /** SearchBar の Enter 押下時にメッセージを送信する */
   async function handleSend() {
@@ -198,10 +199,11 @@ export default function AskAI(
     if (newId) setFocusTarget(newId);
   }
 
-  /** フォーカス変更 = スレッド切り替え（ref のみ、再レンダーなし） */
+  /** フォーカス変更 = スレッド切り替え */
   function handleSelectionChange(threadId: string | null) {
     if (focusTarget) setFocusTarget(undefined);
     if (threadId) {
+      setSelectedThreadId(threadId);
       selectThread(threadId);
       loadThreadMessages(threadId);
     }
@@ -209,27 +211,16 @@ export default function AskAI(
 
   /** 現在フォーカス中のスレッドの customCommandId を取得する */
   function getCurrentCustomCommandId(): string {
-    // focusTarget があればそのスレッド、なければ最新のスレッド
-    const sortedThreads = [...threads].sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    );
-    const currentThread = sortedThreads[0];
+    if (!selectedThreadId) return "";
+    const currentThread = threads.find((t) => t.id === selectedThreadId);
     return currentThread?.customCommandId ?? "";
   }
 
   /** ドロップダウンでカスタムコマンドを切り替えた時 */
   async function handleDropdownChange(value: string) {
-    // 現在フォーカス中のスレッドを特定
-    const sortedThreads = [...threads].sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    );
-    const currentThread = sortedThreads[0];
-    if (!currentThread) return;
-
+    if (!selectedThreadId) return;
     const newCustomCommandId = value === "" ? undefined : value;
-    await updateThreadCustomCommand(currentThread.id, newCustomCommandId);
+    await updateThreadCustomCommand(selectedThreadId, newCustomCommandId);
   }
 
   return (
