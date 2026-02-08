@@ -135,6 +135,7 @@ export async function createChatCompletion(
   messages: Message[],
   model?: string,
   onWebSearch?: () => void,
+  onDelta?: (textSoFar: string) => void,
 ): Promise<ChatCompletionResult> {
   const client = getClient();
   const prefs = getPreferenceValues<Preferences>();
@@ -184,6 +185,7 @@ export async function createChatCompletion(
       "delta" in event
     ) {
       text += (event as { delta: string }).delta;
+      onDelta?.(text);
     }
     if (
       event.type === "response.completed" &&

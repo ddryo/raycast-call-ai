@@ -35,8 +35,15 @@ function buildConversationMarkdown(
   const lines = [...messages]
     .reverse()
     .map((msg) => {
-      const role = msg.role === "user" ? "**You**" : "**AI**";
-      return `${role}\n\n${msg.content}`;
+      if (msg.role === "user") {
+        return `**You**\n\n${msg.content}`;
+      }
+      // assistant: 先頭のタグ行（モデル名・Web検索）を抽出して AI ラベルの横に移動
+      const tagMatch = msg.content.match(/^(`[^`]+`(?:\s+`[^`]+`)*)\n\n([\s\S]*)$/);
+      if (tagMatch) {
+        return `**AI** ${tagMatch[1]}\n\n${tagMatch[2]}`;
+      }
+      return `**AI**\n\n${msg.content}`;
     })
     .join("\n\n---\n\n");
 

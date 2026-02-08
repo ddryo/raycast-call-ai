@@ -224,20 +224,80 @@ export function useConversation(options?: { startNew?: boolean }) {
         });
       }
 
-      const result = await createChatCompletion(trimmed, undefined, () => {
-        setStatusText("Web検索中...");
-      });
+      // ストリーミング表示用の仮メッセージを先に追加
+      const assistantId = randomUUID();
+      const assistantCreatedAt = new Date().toISOString();
+      const streamingMessages = [
+        ...nextMessages,
+        {
+          id: assistantId,
+          threadId,
+          role: "assistant" as const,
+          content: "",
+          createdAt: assistantCreatedAt,
+        },
+      ];
+      updateCache(threadId, streamingMessages);
+      if (currentThreadIdRef.current === threadId) {
+        setMessages(streamingMessages);
+      }
+
+      let lastFlush = 0;
+      let latestText = "";
+      let flushTimer: ReturnType<typeof setTimeout> | null = null;
+      const THROTTLE_MS = 150;
+
+      const flushToUI = () => {
+        const updated = [
+          ...nextMessages,
+          {
+            id: assistantId,
+            threadId,
+            role: "assistant" as const,
+            content: latestText,
+            createdAt: assistantCreatedAt,
+          },
+        ];
+        updateCache(threadId, updated);
+        if (currentThreadIdRef.current === threadId) {
+          setMessages(updated);
+        }
+        lastFlush = Date.now();
+      };
+
+      const result = await createChatCompletion(
+        trimmed,
+        undefined,
+        () => {
+          setStatusText("Web検索中...");
+        },
+        (textSoFar) => {
+          latestText = textSoFar;
+          const now = Date.now();
+          if (now - lastFlush >= THROTTLE_MS) {
+            if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+            flushToUI();
+          } else if (!flushTimer) {
+            flushTimer = setTimeout(() => {
+              flushTimer = null;
+              flushToUI();
+            }, THROTTLE_MS - (now - lastFlush));
+          }
+        },
+      );
+
+      if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
 
       const tags = [
         `\`${result.model}\``,
         ...(result.usedWebSearch ? ["`Web検索`"] : []),
       ].join(" ");
       const assistantMessage: Message = {
-        id: randomUUID(),
+        id: assistantId,
         threadId,
         role: "assistant",
         content: tags + "\n\n" + result.content,
-        createdAt: new Date().toISOString(),
+        createdAt: assistantCreatedAt,
       };
 
       const finalMessages = [...nextMessages, assistantMessage];
