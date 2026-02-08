@@ -21,6 +21,12 @@
       "title": "Ask AI (New)",
       "description": "新しい会話で AI とチャットを始める",
       "mode": "view"
+    },
+    {
+      "name": "create-ai-command",
+      "title": "Create AI Command",
+      "description": "AI カスタムコマンドを作成する",
+      "mode": "view"
     }
   ],
   "preferences": [
