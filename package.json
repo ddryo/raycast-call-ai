@@ -12,25 +12,25 @@
   "commands": [
     {
       "name": "ask-ai",
-      "title": "Ask AI",
+      "title": "Continue Chat",
       "description": "AI とチャットで会話する",
       "mode": "view"
     },
     {
       "name": "ask-ai-new",
-      "title": "Ask AI (New)",
+      "title": "New Chat",
       "description": "新しい会話で AI とチャットを始める",
       "mode": "view"
     },
     {
       "name": "create-ai-prompt",
-      "title": "Create AI Prompt",
+      "title": "Create Prompt",
       "description": "AI カスタムプロンプトを作成する",
       "mode": "view"
     },
     {
       "name": "ai-prompts",
-      "title": "AI Prompts",
+      "title": "Manage Prompts",
       "description": "AI カスタムプロンプトの一覧管理",
       "mode": "view"
     }
