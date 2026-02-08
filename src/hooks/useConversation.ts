@@ -17,31 +17,26 @@ import {
   saveCurrentThreadId,
   loadCurrentThreadId,
 } from "../storage/conversation";
-
-/** デフォルトスレッドを生成する */
-function createDefaultThread(): Thread {
-  const now = new Date().toISOString();
-  return {
-    id: DEFAULT_THREAD_ID,
-    title: "新しい会話",
-    createdAt: now,
-    updatedAt: now,
-  };
-}
+import { getCustomCommand } from "../storage/custom-commands";
 
 /** 新しいスレッドオブジェクトを生成する */
-function createNewThread(): Thread {
+function createNewThread(customCommandId?: string): Thread {
   const now = new Date().toISOString();
   return {
     id: randomUUID(),
     title: "新しい会話",
     createdAt: now,
     updatedAt: now,
+    ...(customCommandId ? { customCommandId } : {}),
   };
 }
 
-export function useConversation(options?: { startNew?: boolean }) {
+export function useConversation(options?: {
+  startNew?: boolean;
+  customCommandId?: string;
+}) {
   const startNew = options?.startNew ?? false;
+  const initialCustomCommandId = options?.customCommandId;
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -93,7 +88,7 @@ export function useConversation(options?: { startNew?: boolean }) {
 
         if (startNew || restoredThreads.length === 0) {
           // 新しい会話で開始（ask-ai-new コマンド or 初回起動）
-          const newThread = createNewThread();
+          const newThread = createNewThread(initialCustomCommandId);
           const allThreads = [newThread, ...restoredThreads];
 
           currentThreadIdRef.current = newThread.id;
@@ -201,8 +196,26 @@ export function useConversation(options?: { startNew?: boolean }) {
       // トークン上限チェック: 超過時は古いメッセージを切り捨て
       const prefs = getPreferenceValues<Preferences>();
 
+      // カスタムコマンドの取得（Thread に customCommandId がある場合）
+      const currentThread = threadsRef.current.find((t) => t.id === threadId);
+      const customCmdId = currentThread?.customCommandId;
+      let customCmd = customCmdId
+        ? await getCustomCommand(customCmdId).catch(() => undefined)
+        : undefined;
+      // 削除済みの場合は undefined（Preferences フォールバック）
+      if (customCmdId && !customCmd) {
+        customCmd = undefined;
+      }
+
+      // システムプロンプトの決定: CustomCommand > Preferences
+      const systemPrompt = customCmd
+        ? customCmd.systemPrompt?.trim()
+        : prefs.systemPrompt?.trim();
+
+      // モデルの決定: CustomCommand.model > Preferences.model
+      const effectiveModel = customCmd?.model ? customCmd.model : prefs.model;
+
       // システムプロンプトの注入（API送信時のみ、LocalStorageには保存しない）
-      const systemPrompt = prefs.systemPrompt?.trim();
       const messagesForApi = systemPrompt
         ? [
             {
@@ -218,7 +231,7 @@ export function useConversation(options?: { startNew?: boolean }) {
 
       const { trimmed, wasTrimmed, exceedsLimit } = trimMessagesForContext(
         messagesForApi,
-        prefs.model,
+        effectiveModel,
       );
 
       if (exceedsLimit) {
@@ -283,7 +296,7 @@ export function useConversation(options?: { startNew?: boolean }) {
 
       const result = await createChatCompletion(
         trimmed,
-        undefined,
+        effectiveModel,
         () => {
           setStatusText("Web検索中...");
         },
@@ -374,58 +387,53 @@ export function useConversation(options?: { startNew?: boolean }) {
   }, []);
 
   // 新しいスレッドを作成
-  const createThread = useCallback(async (): Promise<string | undefined> => {
-    if (isLoadingRef.current) return undefined;
+  const createThread = useCallback(
+    async (customCommandId?: string): Promise<string | undefined> => {
+      if (isLoadingRef.current) return undefined;
 
-    const newThread = createNewThread();
-    const updatedThreads = [newThread, ...threadsRef.current];
+      const newThread = createNewThread(customCommandId);
+      const updatedThreads = [newThread, ...threadsRef.current];
 
-    currentThreadIdRef.current = newThread.id;
-    messagesRef.current = [];
-    setThreads(updatedThreads);
-    setCurrentThreadId(newThread.id);
-    setMessages([]);
-    updateCache(newThread.id, []);
+      currentThreadIdRef.current = newThread.id;
+      messagesRef.current = [];
+      setThreads(updatedThreads);
+      setCurrentThreadId(newThread.id);
+      setMessages([]);
+      updateCache(newThread.id, []);
 
-    try {
-      await saveThreads(updatedThreads);
-      await saveCurrentThreadId(newThread.id);
-    } catch {
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "スレッドの作成に失敗しました",
-      });
-    }
-    return newThread.id;
-  }, []);
-
-  // スレッドを切り替え（フォーカス連動・軽量版）
-  const switchThread = useCallback(async (threadId: string): Promise<void> => {
-    if (currentThreadIdRef.current === threadId) return;
-
-    currentThreadIdRef.current = threadId;
-    setCurrentThreadId(threadId);
-
-    // キャッシュからメッセージを取得、なければストレージからロード
-    let msgs = messageCacheRef.current[threadId];
-    if (msgs === undefined) {
       try {
-        msgs = await loadMessages(threadId);
-        updateCache(threadId, msgs);
+        await saveThreads(updatedThreads);
+        await saveCurrentThreadId(newThread.id);
       } catch {
-        msgs = [];
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "スレッドの作成に失敗しました",
+        });
       }
-    }
+      return newThread.id;
+    },
+    [],
+  );
 
-    // 高速切り替え中に追い越されていないか確認
-    if (currentThreadIdRef.current === threadId) {
-      messagesRef.current = msgs;
-      setMessages(msgs);
-    }
+  // Thread の customCommandId を更新
+  const updateThreadCustomCommand = useCallback(
+    async (threadId: string, customCommandId: string | undefined) => {
+      const updatedThreads = threadsRef.current.map((t) =>
+        t.id === threadId ? { ...t, customCommandId } : t,
+      );
+      setThreads(updatedThreads);
 
-    // バックグラウンドで永続化
-    saveCurrentThreadId(threadId).catch(() => {});
-  }, []);
+      try {
+        await saveThreads(updatedThreads);
+      } catch {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "スレッドの更新に失敗しました",
+        });
+      }
+    },
+    [],
+  );
 
   // スレッドを削除
   const deleteThread = useCallback(async (threadId: string) => {
@@ -531,5 +539,6 @@ export function useConversation(options?: { startNew?: boolean }) {
     messageCache,
     selectThread,
     loadThreadMessages,
+    updateThreadCustomCommand,
   };
 }

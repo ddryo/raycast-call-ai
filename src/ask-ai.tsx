@@ -10,8 +10,10 @@ import {
   Toast,
   Icon,
   Alert,
+  LaunchProps,
 } from "@raycast/api";
 import { useConversation } from "./hooks/useConversation";
+import { useCustomCommands } from "./hooks/useCustomCommands";
 import { Message } from "./types";
 
 /** 日時を m/d HH:MM 形式でフォーマットする */
@@ -110,9 +112,19 @@ function MultiLineForm({
   );
 }
 
-export default function AskAI({
-  startNew = false,
-}: { startNew?: boolean } = {}) {
+export default function AskAI(
+  props: LaunchProps<{ launchContext: { customCommandId?: string } }> & {
+    startNew?: boolean;
+  } = {} as LaunchProps<{ launchContext: { customCommandId?: string } }> & {
+    startNew?: boolean;
+  },
+) {
+  const startNew = props.startNew ?? false;
+  const launchCustomCommandId =
+    props.launchContext?.customCommandId ?? undefined;
+  // launchContext がある場合は startNew と同様に新規スレッドを作成
+  const shouldStartNew = startNew || !!launchCustomCommandId;
+
   const {
     isLoading,
     statusText,
@@ -125,7 +137,12 @@ export default function AskAI({
     messageCache,
     selectThread,
     loadThreadMessages,
-  } = useConversation({ startNew });
+    updateThreadCustomCommand,
+  } = useConversation({
+    startNew: shouldStartNew,
+    customCommandId: launchCustomCommandId,
+  });
+  const { commands: customCommands } = useCustomCommands();
   const [searchText, setSearchText] = useState("");
   const [focusTarget, setFocusTarget] = useState<string | undefined>(undefined);
 
@@ -190,6 +207,31 @@ export default function AskAI({
     }
   }
 
+  /** 現在フォーカス中のスレッドの customCommandId を取得する */
+  function getCurrentCustomCommandId(): string {
+    // focusTarget があればそのスレッド、なければ最新のスレッド
+    const sortedThreads = [...threads].sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
+    const currentThread = sortedThreads[0];
+    return currentThread?.customCommandId ?? "";
+  }
+
+  /** ドロップダウンでカスタムコマンドを切り替えた時 */
+  async function handleDropdownChange(value: string) {
+    // 現在フォーカス中のスレッドを特定
+    const sortedThreads = [...threads].sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
+    const currentThread = sortedThreads[0];
+    if (!currentThread) return;
+
+    const newCustomCommandId = value === "" ? undefined : value;
+    await updateThreadCustomCommand(currentThread.id, newCustomCommandId);
+  }
+
   return (
     <List
       isShowingDetail
@@ -200,6 +242,18 @@ export default function AskAI({
       filtering={false}
       selectedItemId={focusTarget}
       onSelectionChange={handleSelectionChange}
+      searchBarAccessory={
+        <List.Dropdown
+          tooltip="カスタムコマンド"
+          value={getCurrentCustomCommandId()}
+          onChange={handleDropdownChange}
+        >
+          <List.Dropdown.Item title="デフォルト" value="" />
+          {customCommands.map((cmd) => (
+            <List.Dropdown.Item key={cmd.id} title={cmd.name} value={cmd.id} />
+          ))}
+        </List.Dropdown>
+      }
     >
       {[...threads]
         .sort(
