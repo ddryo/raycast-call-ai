@@ -257,23 +257,7 @@ export default function AICommands() {
 
   return (
     <List isLoading={isLoading}>
-      {commands.length === 0 && !isLoading ? (
-        <List.EmptyView
-          title="カスタムコマンドがありません"
-          description="Enter キーで作成できます。"
-          icon={Icon.PlusCircle}
-          actions={
-            <ActionPanel>
-              <Action.Push
-                title="Create Command"
-                icon={Icon.PlusCircle}
-                target={<CreateCommandForm onAdd={addCommand} />}
-              />
-            </ActionPanel>
-          }
-        />
-      ) : (
-        commands.map((command) => (
+      {commands.map((command) => (
           <List.Item
             key={command.id}
             title={command.name}
@@ -319,8 +303,21 @@ export default function AICommands() {
               </ActionPanel>
             }
           />
-        ))
-      )}
+        ))}
+      <List.Item
+        key="__create__"
+        title="新規コマンドを作成..."
+        icon={Icon.PlusCircle}
+        actions={
+          <ActionPanel>
+            <Action.Push
+              title="Create Command"
+              icon={Icon.PlusCircle}
+              target={<CreateCommandForm onAdd={addCommand} />}
+            />
+          </ActionPanel>
+        }
+      />
     </List>
   );
 }
