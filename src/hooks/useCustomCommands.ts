@@ -5,6 +5,7 @@ import {
   addCustomCommand,
   updateCustomCommand,
   deleteCustomCommand,
+  ensureDefaultCommand,
 } from "../storage/custom-commands";
 
 /**
@@ -14,9 +15,10 @@ export function useCustomCommands() {
   const [commands, setCommands] = useState<CustomCommand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // マウント時にストレージから復元
+  // マウント時にデフォルトコマンドを確保してからストレージを復元
   useEffect(() => {
     (async () => {
+      await ensureDefaultCommand();
       const loaded = await loadCustomCommands();
       setCommands(loaded);
       setIsLoading(false);

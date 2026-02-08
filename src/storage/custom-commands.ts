@@ -1,8 +1,37 @@
+import { randomUUID } from "node:crypto";
 import { LocalStorage } from "@raycast/api";
 import { CustomCommand } from "../types";
 
 // LocalStorage キー定数
 const CUSTOM_COMMANDS_KEY = "ask-ai:custom-commands";
+
+// デフォルトコマンドID用のキー（初期生成済みフラグ）
+const DEFAULT_COMMAND_KEY = "ask-ai:default-command-id";
+
+/** デフォルトコマンドが存在しなければ初期生成し、そのIDを返す */
+export async function ensureDefaultCommand(): Promise<string> {
+  const existingId =
+    await LocalStorage.getItem<string>(DEFAULT_COMMAND_KEY);
+  if (existingId) {
+    // 既にデフォルトコマンドが作成済み
+    return existingId;
+  }
+
+  // 初回: デフォルトコマンドを作成
+  const id = randomUUID();
+  const defaultCommand: CustomCommand = {
+    id,
+    name: "デフォルト",
+    systemPrompt: "",
+    icon: "Bubble",
+  };
+
+  const commands = await loadCustomCommands();
+  commands.unshift(defaultCommand);
+  await saveCustomCommands(commands);
+  await LocalStorage.setItem(DEFAULT_COMMAND_KEY, id);
+  return id;
+}
 
 // カスタムコマンドを全件保存
 export async function saveCustomCommands(

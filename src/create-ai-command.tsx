@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   Action,
   ActionPanel,
@@ -68,7 +69,7 @@ export default function CreateAICommand() {
     }
 
     const command: CustomCommand = {
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       name: values.name.trim(),
       systemPrompt: values.systemPrompt.trim(),
       model: values.model || undefined,

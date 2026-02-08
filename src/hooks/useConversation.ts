@@ -199,18 +199,12 @@ export function useConversation(options?: {
       // カスタムコマンドの取得（Thread に customCommandId がある場合）
       const currentThread = threadsRef.current.find((t) => t.id === threadId);
       const customCmdId = currentThread?.customCommandId;
-      let customCmd = customCmdId
+      const customCmd = customCmdId
         ? await getCustomCommand(customCmdId).catch(() => undefined)
         : undefined;
-      // 削除済みの場合は undefined（Preferences フォールバック）
-      if (customCmdId && !customCmd) {
-        customCmd = undefined;
-      }
 
-      // システムプロンプトの決定: CustomCommand > Preferences
-      const systemPrompt = customCmd
-        ? customCmd.systemPrompt?.trim()
-        : prefs.systemPrompt?.trim();
+      // システムプロンプトの決定: カスタムコマンドから取得（未設定なら注入しない）
+      const systemPrompt = customCmd?.systemPrompt?.trim() || "";
 
       // モデルの決定: CustomCommand.model > Preferences.model
       const effectiveModel = customCmd?.model ? customCmd.model : prefs.model;

@@ -99,14 +99,6 @@
           "value": "high"
         }
       ]
-    },
-    {
-      "name": "systemPrompt",
-      "type": "textfield",
-      "required": false,
-      "title": "System Prompt",
-      "description": "デフォルトのシステムプロンプト（全会話で送信時に適用されます）",
-      "placeholder": "例: あなたは親切なアシスタントです。日本語で回答してください。"
     }
   ],
   "dependencies": {

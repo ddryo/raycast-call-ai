@@ -48,5 +48,4 @@ export interface Preferences {
   apiKey: string;
   model: string;
   reasoningEffort: string;
-  systemPrompt?: string;
 }
