@@ -32,20 +32,31 @@ function buildConversationMarkdown(
   if (!messages || messages.length === 0) {
     return "*メッセージを入力して会話を始めましょう*";
   }
-  const lines = [...messages]
-    .reverse()
-    .map((msg) => {
-      if (msg.role === "user") {
-        return `**You**\n\n${msg.content}`;
-      }
-      // assistant: 先頭のタグ行（モデル名・Web検索）を抽出して AI ラベルの横に移動
-      const tagMatch = msg.content.match(/^(`[^`]+`(?:\s+`[^`]+`)*)\n\n([\s\S]*)$/);
-      if (tagMatch) {
-        return `**AI** ${tagMatch[1]}\n\n${tagMatch[2]}`;
-      }
-      return `**AI**\n\n${msg.content}`;
-    })
-    .join("\n\n---\n\n");
+  const reversed = [...messages].reverse();
+  const parts = reversed.map((msg) => {
+    if (msg.role === "user") {
+      const quoted = msg.content
+        .split("\n")
+        .map((line) => `> ${line}`)
+        .join("\n");
+      return `**You**\n\n${quoted}`;
+    }
+    // assistant: 先頭のタグ行（モデル名・Web検索）を抽出して AI ラベルの横に移動
+    const tagMatch = msg.content.match(/^(`[^`]+`(?:\s+`[^`]+`)*)\n\n([\s\S]*)$/);
+    if (tagMatch) {
+      return `**AI** ${tagMatch[1]}\n\n${tagMatch[2]}`;
+    }
+    return `**AI**\n\n${msg.content}`;
+  });
+  // 質問(You)→回答(AI)をセットにし、セット間のみ区切り線を入れる
+  const lines = parts.reduce((acc, text, i) => {
+    if (i === 0) return text;
+    const separator =
+      reversed[i - 1].role === "user" && reversed[i].role === "assistant"
+        ? "\n\n---\n\n"
+        : "\n\n";
+    return acc + separator + text;
+  }, "");
 
   if (statusText) {
     return `*${statusText}*\n\n---\n\n${lines}`;
