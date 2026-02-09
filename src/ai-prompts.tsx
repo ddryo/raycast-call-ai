@@ -27,7 +27,7 @@ const PROVIDER_OPTIONS = [
   { title: "Claude Code CLI", value: "claude-cli" },
 ];
 
-/** モデル選択肢（create-ai-command.tsx と同一） */
+/** モデル選択肢 */
 const MODEL_OPTIONS = [
   { title: "Default (Preferences)", value: "" },
   { title: "GPT-4.1 nano", value: "gpt-4.1-nano" },
@@ -38,24 +38,35 @@ const MODEL_OPTIONS = [
   { title: "GPT-5.2", value: "gpt-5.2" },
 ];
 
-/** アイコン選択肢（create-ai-command.tsx と同一） */
+/** アイコン選択肢 */
 // https://developers.raycast.com/api-reference/user-interface/icons-and-images
-const ICON_OPTIONS: { title: string; value: string; icon: Icon }[] = [
-  { title: "Message", value: "Message", icon: Icon.Message },
-  { title: "Bubble", value: "Bubble", icon: Icon.Bubble },
-  { title: "Star", value: "Star", icon: Icon.Star },
-  { title: "Heart", value: "Heart", icon: Icon.Heart },
-  { title: "Light Bulb", value: "LightBulb", icon: Icon.LightBulb },
-  { title: "Code", value: "Code", icon: Icon.Code },
-  { title: "Document", value: "Document", icon: Icon.Document },
-  { title: "Pencil", value: "Pencil", icon: Icon.Pencil },
-  { title: "Globe", value: "Globe", icon: Icon.Globe },
-  { title: "Book", value: "Book", icon: Icon.Book },
-  { title: "Hammer", value: "Hammer", icon: Icon.Hammer },
-  { title: "Terminal", value: "Terminal", icon: Icon.Terminal },
-  { title: "Wand", value: "Wand", icon: Icon.Wand },
-  { title: "Person", value: "Person", icon: Icon.Person },
-  { title: "Shield", value: "Shield", icon: Icon.Shield },
+const ICON_OPTIONS: { value: string; icon: Icon }[] = [
+  // コミュニケーション
+  { value: "SpeechBubbleActive", icon: Icon.SpeechBubbleActive },
+  { value: "Emoji", icon: Icon.Emoji },
+  { value: "LightBulb", icon: Icon.LightBulb },
+  { value: "Bolt", icon: Icon.Bolt },
+  { value: "Rocket", icon: Icon.Rocket },
+  { value: "Brush", icon: Icon.Brush },
+
+  { value: "Code", icon: Icon.Code },
+  { value: "Terminal", icon: Icon.Terminal },
+  { value: "Bug", icon: Icon.Bug },
+  { value: "Cog", icon: Icon.Cog },
+  { value: "Globe", icon: Icon.Globe },
+
+  { value: "Pencil", icon: Icon.Pencil },
+  { value: "Book", icon: Icon.Book },
+  { value: "Clipboard", icon: Icon.Clipboard },
+
+  { value: "BarChart", icon: Icon.BarChart },
+  { value: "Shield", icon: Icon.Shield },
+  { value: "Lock", icon: Icon.Lock },
+  { value: "MagnifyingGlass", icon: Icon.MagnifyingGlass },
+
+  { value: "Crypto", icon: Icon.Crypto },
+  { value: "Stars", icon: Icon.Stars },
+  { value: "Wand", icon: Icon.Wand },
 ];
 
 /** Icon 名から Icon enum の値を取得する */
@@ -191,11 +202,11 @@ function EditCommandForm({
         ))}
       </Form.Dropdown>
       <Form.Dropdown id="icon" title="Icon" defaultValue={command.icon ?? ""}>
-        <Form.Dropdown.Item title="Default" value="" icon={Icon.Bubble} />
+        <Form.Dropdown.Item title="Default (Bubble)" value="" icon={Icon.Bubble} />
         {ICON_OPTIONS.map((opt) => (
           <Form.Dropdown.Item
             key={opt.value}
-            title={opt.title}
+            title={opt.value}
             value={opt.value}
             icon={opt.icon}
           />
@@ -280,11 +291,11 @@ function CreateCommandForm({
         ))}
       </Form.Dropdown>
       <Form.Dropdown id="icon" title="Icon" defaultValue="">
-        <Form.Dropdown.Item title="Default" value="" icon={Icon.Bubble} />
+        <Form.Dropdown.Item title="Default (Bubble)" value="" icon={Icon.Bubble} />
         {ICON_OPTIONS.map((opt) => (
           <Form.Dropdown.Item
             key={opt.value}
-            title={opt.title}
+            title={opt.value}
             value={opt.value}
             icon={opt.icon}
           />
