@@ -445,6 +445,60 @@ export function useConversation(options?: {
     [],
   );
 
+  // 複数スレッドを一括削除
+  const deleteThreads = useCallback(async (threadIds: string[]) => {
+    if (isLoadingRef.current || threadIds.length === 0) return;
+
+    const idsToDelete = new Set(threadIds);
+    const currentThreads = threadsRef.current;
+    const remaining = currentThreads.filter((t) => !idsToDelete.has(t.id));
+
+    // メッセージをキャッシュと LocalStorage から削除
+    for (const id of threadIds) {
+      removeFromCache(id);
+      await clearStorageMessages(id);
+    }
+
+    if (remaining.length === 0) {
+      const newThread = createNewThread();
+      const newThreads = [newThread];
+      currentThreadIdRef.current = newThread.id;
+      messagesRef.current = [];
+      setThreads(newThreads);
+      setCurrentThreadId(newThread.id);
+      setMessages([]);
+      updateCache(newThread.id, []);
+      try {
+        await saveThreads(newThreads);
+        await saveCurrentThreadId(newThread.id);
+      } catch {
+        await showToast({ style: Toast.Style.Failure, title: "スレッドの保存に失敗しました" });
+      }
+    } else if (idsToDelete.has(currentThreadIdRef.current)) {
+      const nextThread = remaining[0];
+      currentThreadIdRef.current = nextThread.id;
+      setThreads(remaining);
+      setCurrentThreadId(nextThread.id);
+      try {
+        await saveThreads(remaining);
+        await saveCurrentThreadId(nextThread.id);
+        const restoredMessages = await loadMessages(nextThread.id);
+        messagesRef.current = restoredMessages;
+        setMessages(restoredMessages);
+        updateCache(nextThread.id, restoredMessages);
+      } catch {
+        await showToast({ style: Toast.Style.Failure, title: "スレッドの切替に失敗しました" });
+      }
+    } else {
+      setThreads(remaining);
+      try {
+        await saveThreads(remaining);
+      } catch {
+        await showToast({ style: Toast.Style.Failure, title: "スレッドの保存に失敗しました" });
+      }
+    }
+  }, []);
+
   // スレッドを削除
   const deleteThread = useCallback(async (threadId: string) => {
     if (isLoadingRef.current) return;
@@ -550,6 +604,7 @@ export function useConversation(options?: {
     clearMessages: clearConversation,
     createThread,
     deleteThread,
+    deleteThreads,
     messageCache,
     selectThread,
     loadThreadMessages,

@@ -140,6 +140,7 @@ export default function AskAI(
     threads,
     currentThreadId,
     deleteThread,
+    deleteThreads,
     messageCache,
     selectThread,
     loadThreadMessages,
@@ -151,7 +152,6 @@ export default function AskAI(
   const { commands: customCommands, isLoading: isLoadingCommands } = useCustomCommands();
   const [searchText, setSearchText] = useState("");
   const [focusTarget, setFocusTarget] = useState<string | undefined>(undefined);
-
   /** SearchBar の Enter 押下時にメッセージを送信する */
   async function handleSend() {
     const text = searchText.trim();
@@ -195,6 +195,25 @@ export default function AskAI(
     await showToast({
       style: Toast.Style.Success,
       title: "スレッドを削除しました",
+    });
+  }
+
+  /** 全スレッドを削除する（確認ダイアログ付き） */
+  async function handleDeleteAllThreads() {
+    if (isLoading || threads.length === 0) return;
+    const confirmed = await confirmAlert({
+      title: `${threads.length}件すべてのスレッドを削除しますか?`,
+      message: "この操作は取り消せません。",
+      primaryAction: {
+        title: "すべて削除",
+        style: Alert.ActionStyle.Destructive,
+      },
+    });
+    if (!confirmed) return;
+    await deleteThreads(threads.map((t) => t.id));
+    await showToast({
+      style: Toast.Style.Success,
+      title: "すべてのスレッドを削除しました",
     });
   }
 
@@ -343,6 +362,15 @@ export default function AskAI(
                     shortcut={{ modifiers: ["ctrl"], key: "x" }}
                     onAction={() => handleDeleteThread(thread.id)}
                   />
+                  {threads.length > 1 && (
+                    <Action
+                      title="Delete All Conversations"
+                      icon={Icon.Wand}
+                      style={Action.Style.Destructive}
+                      shortcut={{ modifiers: ["ctrl", "shift"], key: "x" }}
+                      onAction={handleDeleteAllThreads}
+                    />
+                  )}
                 </ActionPanel>
               }
             />
