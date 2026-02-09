@@ -307,7 +307,7 @@ export default function AskAI(
                     title="Delete Conversation"
                     icon={Icon.Trash}
                     style={Action.Style.Destructive}
-                    shortcut={{ modifiers: ["ctrl"], key: "x" }}
+                    shortcut={{ modifiers: ["ctrl"], key: "d" }}
                     onAction={() => handleDeleteThread(thread.id)}
                   />
                 </ActionPanel>
