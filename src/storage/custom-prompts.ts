@@ -42,8 +42,7 @@ export async function ensureDefaultPrompt(): Promise<string> {
   const defaultPrompt: CustomCommand = {
     id,
     name: "デフォルト",
-    systemPrompt:
-      "簡潔に回答してください。正確さを最優先し、不確かな情報や推測に基づく回答は避けてください。わからないこと・曖昧なことがあれば、正直にその旨を伝えてください。",
+    systemPrompt: "",
     icon: "Bubble",
     provider: "openai-api",
     model: "gpt-4.1-nano",

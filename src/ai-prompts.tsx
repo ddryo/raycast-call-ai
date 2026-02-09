@@ -188,13 +188,6 @@ function EditCommandForm({
       });
       return;
     }
-    if (!values.systemPrompt.trim()) {
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "システムプロンプトを入力してください",
-      });
-      return;
-    }
     if (!(await validateApiKey(values.provider))) return;
 
     const updated: CustomCommand = {
