@@ -8,7 +8,7 @@ import {
   Toast,
   useNavigation,
 } from "@raycast/api";
-import { addCustomCommand } from "./storage/custom-commands";
+import { addCustomPrompt } from "./storage/custom-prompts";
 import { CustomCommand } from "./types";
 
 /** プロバイダー選択肢 */
@@ -86,7 +86,7 @@ export default function CreateAICommand() {
       provider: values.provider || undefined,
     };
 
-    await addCustomCommand(command);
+    await addCustomPrompt(command);
 
     await showToast({
       style: Toast.Style.Success,

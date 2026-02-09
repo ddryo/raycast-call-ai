@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { CustomCommand } from "../types";
 import {
-  loadCustomCommands,
-  addCustomCommand,
-  updateCustomCommand,
-  deleteCustomCommand,
-  ensureDefaultCommand,
-} from "../storage/custom-commands";
+  loadCustomPrompts,
+  addCustomPrompt,
+  updateCustomPrompt,
+  deleteCustomPrompt,
+  ensureDefaultPrompt,
+} from "../storage/custom-prompts";
 
 /**
  * カスタムコマンド一覧の取得・CRUD 操作を提供するフック
@@ -15,31 +15,31 @@ export function useCustomCommands() {
   const [commands, setCommands] = useState<CustomCommand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // マウント時にデフォルトコマンドを確保してからストレージを復元
+  // マウント時にデフォルトプロンプトを確保してからストレージを復元
   useEffect(() => {
     (async () => {
-      await ensureDefaultCommand();
-      const loaded = await loadCustomCommands();
+      await ensureDefaultPrompt();
+      const loaded = await loadCustomPrompts();
       setCommands(loaded);
       setIsLoading(false);
     })();
   }, []);
 
   const addCommand = useCallback(async (command: CustomCommand) => {
-    await addCustomCommand(command);
-    const updated = await loadCustomCommands();
+    await addCustomPrompt(command);
+    const updated = await loadCustomPrompts();
     setCommands(updated);
   }, []);
 
   const updateCommand = useCallback(async (command: CustomCommand) => {
-    await updateCustomCommand(command);
-    const updated = await loadCustomCommands();
+    await updateCustomPrompt(command);
+    const updated = await loadCustomPrompts();
     setCommands(updated);
   }, []);
 
   const removeCommand = useCallback(async (id: string) => {
-    await deleteCustomCommand(id);
-    const updated = await loadCustomCommands();
+    await deleteCustomPrompt(id);
+    const updated = await loadCustomPrompts();
     setCommands(updated);
   }, []);
 
