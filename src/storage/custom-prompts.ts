@@ -13,7 +13,13 @@ export async function ensureDefaultPrompt(): Promise<string> {
   const existingId =
     await LocalStorage.getItem<string>(DEFAULT_PROMPT_KEY);
   if (existingId) {
-    // 既にデフォルトプロンプトが作成済み
+    // 既存のデフォルトプロンプトに isDefault フラグがなければ追加（マイグレーション）
+    const prompts = await loadCustomPrompts();
+    const defaultPrompt = prompts.find((p) => p.id === existingId);
+    if (defaultPrompt && !defaultPrompt.isDefault) {
+      defaultPrompt.isDefault = true;
+      await saveCustomPrompts(prompts);
+    }
     return existingId;
   }
 
@@ -25,6 +31,7 @@ export async function ensureDefaultPrompt(): Promise<string> {
     systemPrompt:
       "簡潔に回答してください。正確さを最優先し、不確かな情報や推測に基づく回答は避けてください。わからないこと・曖昧なことがあれば、正直にその旨を伝えてください。",
     icon: "Bubble",
+    isDefault: true,
   };
 
   const prompts = await loadCustomPrompts();
@@ -32,6 +39,12 @@ export async function ensureDefaultPrompt(): Promise<string> {
   await saveCustomPrompts(prompts);
   await LocalStorage.setItem(DEFAULT_PROMPT_KEY, id);
   return id;
+}
+
+/** デフォルトプロンプトを取得する */
+export async function getDefaultPrompt(): Promise<CustomCommand | undefined> {
+  const prompts = await loadCustomPrompts();
+  return prompts.find((p) => p.isDefault);
 }
 
 // カスタムプロンプトを全件保存

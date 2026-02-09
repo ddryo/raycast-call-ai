@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { useEffect, useRef } from "react";
 import {
   Action,
   ActionPanel,
@@ -6,6 +7,7 @@ import {
   confirmAlert,
   Form,
   Icon,
+  LaunchProps,
   LaunchType,
   launchCommand,
   List,
@@ -37,6 +39,7 @@ const MODEL_OPTIONS = [
 ];
 
 /** アイコン選択肢（create-ai-command.tsx と同一） */
+// https://developers.raycast.com/api-reference/user-interface/icons-and-images
 const ICON_OPTIONS: { title: string; value: string; icon: Icon }[] = [
   { title: "Message", value: "Message", icon: Icon.Message },
   { title: "Bubble", value: "Bubble", icon: Icon.Bubble },
@@ -291,9 +294,19 @@ function CreateCommandForm({
   );
 }
 
-export default function AICommands() {
+export default function AICommands(props: LaunchProps<{ launchContext?: { action?: string } }>) {
   const { commands, isLoading, addCommand, updateCommand, removeCommand } =
     useCustomCommands();
+  const { push } = useNavigation();
+  const didAutoNav = useRef(false);
+
+  // context.action === "create" の場合、直接作成フォームを開く
+  useEffect(() => {
+    if (!isLoading && !didAutoNav.current && props.launchContext?.action === "create") {
+      didAutoNav.current = true;
+      push(<CreateCommandForm onAdd={addCommand} />);
+    }
+  }, [isLoading]);
 
   /** カスタムプロンプトで会話を開始する */
   async function handleStartConversation(command: CustomCommand) {
@@ -370,13 +383,15 @@ export default function AICommands() {
                 shortcut={{ modifiers: ["cmd"], key: "n" }}
                 target={<CreateCommandForm onAdd={addCommand} />}
               />
-              <Action
-                title="Delete Prompt"
-                icon={Icon.Trash}
-                style={Action.Style.Destructive}
-                shortcut={{ modifiers: ["ctrl"], key: "x" }}
-                onAction={() => handleDelete(command)}
-              />
+              {!command.isDefault && (
+                <Action
+                  title="Delete Prompt"
+                  icon={Icon.Trash}
+                  style={Action.Style.Destructive}
+                  shortcut={{ modifiers: ["ctrl"], key: "x" }}
+                  onAction={() => handleDelete(command)}
+                />
+              )}
             </ActionPanel>
           }
         />

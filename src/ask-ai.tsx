@@ -9,8 +9,11 @@ import {
   showToast,
   Toast,
   Icon,
+  Color,
   Alert,
   LaunchProps,
+  launchCommand,
+  LaunchType,
 } from "@raycast/api";
 import { useConversation } from "./hooks/useConversation";
 import { useCustomCommands } from "./hooks/useCustomCommands";
@@ -145,7 +148,7 @@ export default function AskAI(
     startNew: shouldStartNew,
     customCommandId: launchCustomCommandId,
   });
-  const { commands: customCommands } = useCustomCommands();
+  const { commands: customCommands, isLoading: isLoadingCommands } = useCustomCommands();
   const [searchText, setSearchText] = useState("");
   const [focusTarget, setFocusTarget] = useState<string | undefined>(undefined);
 
@@ -210,14 +213,21 @@ export default function AskAI(
     }
   }
 
-  /** 現在フォーカス中のスレッドの customCommandId を取得する */
+  const defaultCommand = customCommands.find((cmd) => cmd.isDefault);
+  const userCommands = customCommands.filter((cmd) => !cmd.isDefault);
+
+  /** 現在フォーカス中のスレッドの customCommandId を取得する（未設定時はデフォルトにフォールバック） */
   function getCurrentCustomCommandId(): string {
     const currentThread = threads.find((t) => t.id === currentThreadId);
-    return currentThread?.customCommandId ?? "";
+    return currentThread?.customCommandId ?? defaultCommand?.id ?? "";
   }
 
   /** ドロップダウンでカスタムプロンプトを切り替えた時 */
   async function handleDropdownChange(value: string) {
+    if (value === "__create_new__") {
+      await launchCommand({ name: "ai-prompts", type: LaunchType.UserInitiated, context: { action: "create" } });
+      return;
+    }
     if (!currentThreadId) return;
     const newCustomCommandId = value === "" ? undefined : value;
     await updateThreadCustomCommand(currentThreadId, newCustomCommandId);
@@ -239,9 +249,25 @@ export default function AskAI(
           value={getCurrentCustomCommandId()}
           onChange={handleDropdownChange}
         >
-          {customCommands.map((cmd) => (
-            <List.Dropdown.Item key={cmd.id} title={cmd.name} value={cmd.id} />
-          ))}
+          {defaultCommand && (
+            <List.Dropdown.Item
+              key={defaultCommand.id}
+              title={defaultCommand.name}
+              value={defaultCommand.id}
+            />
+          )}
+          <List.Dropdown.Section title="カスタムプロンプト">
+            {userCommands.map((cmd) => (
+              <List.Dropdown.Item key={cmd.id} title={cmd.name} value={cmd.id} />
+            ))}
+            {!isLoadingCommands && (
+              <List.Dropdown.Item
+                title="新規作成"
+                value="__create_new__"
+                icon={Icon.PlusCircle}
+              />
+          )}
+          </List.Dropdown.Section>
         </List.Dropdown>
       }
     >
@@ -254,6 +280,10 @@ export default function AskAI(
           const cachedMessages = messageCache[thread.id];
           const msgCount = cachedMessages ? cachedMessages.length : 0;
           const lastResponse = getLastAssistantMessage(cachedMessages);
+          const promptCmd = thread.customCommandId
+            ? customCommands.find((cmd) => cmd.id === thread.customCommandId)
+            : undefined;
+          const promptName = promptCmd && !promptCmd.isDefault ? promptCmd.name : undefined;
 
           return (
             <List.Item
@@ -262,7 +292,10 @@ export default function AskAI(
               title={thread.title}
               subtitle={msgCount > 0 ? `${msgCount} messages` : undefined}
               icon={Icon.Bubble}
-              accessories={[{ text: formatDateTime(thread.updatedAt) }]}
+              accessories={[
+                ...(promptName ? [{ tag: { value: promptName, color: Color.Blue } }] : []),
+                { text: formatDateTime(thread.updatedAt) },
+              ]}
               detail={
                 <List.Item.Detail
                   markdown={buildConversationMarkdown(

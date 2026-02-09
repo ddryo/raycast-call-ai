@@ -30,6 +30,7 @@ export interface CustomCommand {
   model?: string;
   icon?: string; // Raycast Icon 名
   provider?: string; // 未指定時は Preferences.provider を使用
+  isDefault?: boolean; // デフォルトプロンプト（削除不可・フォールバック用）
 }
 
 // API エラー種別

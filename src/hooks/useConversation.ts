@@ -14,7 +14,7 @@ import {
   saveCurrentThreadId,
   loadCurrentThreadId,
 } from "../storage/conversation";
-import { getCustomPrompt } from "../storage/custom-prompts";
+import { getCustomPrompt, getDefaultPrompt } from "../storage/custom-prompts";
 
 /** 新しいスレッドオブジェクトを生成する */
 function createNewThread(customCommandId?: string): Thread {
@@ -198,12 +198,12 @@ export function useConversation(options?: {
     // トークン上限チェック: 超過時は古いメッセージを切り捨て
     const prefs = getPreferenceValues<Preferences>();
 
-    // カスタムコマンドの取得（Thread に customCommandId がある場合）
+    // カスタムコマンドの取得（Thread に customCommandId がある場合、なければデフォルトにフォールバック）
     const currentThread = threadsRef.current.find((t) => t.id === threadId);
     const customCmdId = currentThread?.customCommandId;
     const customCmd = customCmdId
       ? await getCustomPrompt(customCmdId).catch(() => undefined)
-      : undefined;
+      : await getDefaultPrompt().catch(() => undefined);
 
     // システムプロンプトの決定: カスタムコマンドから取得（未設定なら注入しない）
     const systemPrompt = customCmd?.systemPrompt?.trim() || "";
