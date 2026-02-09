@@ -62,26 +62,17 @@ function getEnvWithPath(): NodeJS.ProcessEnv {
 // タイムアウト（ミリ秒）
 const TIMEOUT_MS = 120_000;
 
-// モデル名が取得できなかった場合のフォールバック表示
-const MODEL_UNKNOWN = "（取得失敗）";
+// Raycast Preferences でモデル未指定時のフォールバック表示
+const CODEX_LOCAL = "Codex CLI（ローカル設定）";
+const CLAUDE_LOCAL = "Claude Code CLI（ローカル設定）";
 
 /**
  * 会話履歴をプロンプト文字列に変換する
  */
-function formatMessages(messages: Message[], systemPrompt?: string): string {
+function formatMessages(messages: Message[]): string {
   const parts: string[] = [];
 
-  if (systemPrompt) {
-    parts.push(`[System Instructions]\n${systemPrompt}`);
-  }
-
-  // system ロールのメッセージもシステムプロンプトとして埋め込む
-  const systemMessages = messages.filter((m) => m.role === "system");
-  for (const m of systemMessages) {
-    parts.push(`[System Instructions]\n${m.content}`);
-  }
-
-  // 会話履歴を埋め込む
+  // 会話履歴を埋め込む（system メッセージは developer_instructions で渡すので除外）
   const conversationMessages = messages.filter((m) => m.role !== "system");
   for (const m of conversationMessages) {
     const label = m.role === "user" ? "User" : "Assistant";
@@ -326,7 +317,7 @@ async function runCodexCli(
     onDelta?: (textSoFar: string) => void;
   },
 ): Promise<ChatCompletionResult> {
-  const prompt = formatMessages(messages, options?.systemPrompt);
+  const prompt = formatMessages(messages);
   const args = ["exec", "--skip-git-repo-check"];
 
   if (options?.model) {
@@ -335,6 +326,19 @@ async function runCodexCli(
 
   if (options?.reasoningEffort) {
     args.push("-c", `model_reasoning_effort="${options.reasoningEffort}"`);
+  }
+
+  // システムプロンプトと system ロールメッセージを developer_instructions で渡す
+  const systemMessages = messages.filter((m) => m.role === "system");
+  const combinedSystemPrompt = [
+    options?.systemPrompt,
+    ...systemMessages.map((m) => m.content),
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  if (combinedSystemPrompt) {
+    args.push("-c", `developer_instructions="${combinedSystemPrompt.replace(/"/g, '\\"')}"`);
   }
 
   args.push(prompt);
@@ -358,7 +362,7 @@ async function runCodexCli(
   return {
     content,
     usedWebSearch: false,
-    model: options?.model ?? MODEL_UNKNOWN,
+    model: options?.model ?? CODEX_LOCAL,
   };
 }
 
@@ -403,9 +407,17 @@ async function runClaudeCli(
 
   const result = await spawnClaudeStreaming(args, options?.onDelta);
 
+  // モデル名の決定:
+  // - CLI からモデル名が取得できた場合: Raycast 未指定なら「（ローカル設定）」を付記
+  // - 取得できなかった場合: Raycast 指定があればそれを、なければフォールバック表示
+  const hasCliModel = result.model && result.model !== "claude";
+  const model = hasCliModel
+    ? options?.model ? result.model : `${result.model}（ローカル設定）`
+    : options?.model ?? CLAUDE_LOCAL;
+
   return {
     ...result,
-    model: result.model !== "claude" ? result.model : (options?.model ?? MODEL_UNKNOWN),
+    model,
   };
 }
 
