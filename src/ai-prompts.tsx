@@ -13,6 +13,7 @@ import {
   Toast,
   useNavigation,
 } from "@raycast/api";
+import { createDeeplink } from "@raycast/utils";
 import { useCustomCommands } from "./hooks/useCustomCommands";
 import { CustomCommand } from "./types";
 
@@ -351,6 +352,17 @@ export default function AICommands() {
                 icon={Icon.Message}
                 shortcut={{ modifiers: ["cmd"], key: "return" }}
                 onAction={() => handleStartConversation(command)}
+              />
+              <Action.CreateQuicklink
+                title="Create Quicklink"
+                shortcut={{ modifiers: ["cmd", "shift"], key: "l" }}
+                quicklink={{
+                  name: `Ask AI: ${command.name}`,
+                  link: createDeeplink({
+                    command: "use-prompt",
+                    arguments: { promptName: command.name },
+                  }),
+                }}
               />
               <Action.Push
                 title="Create Prompt"

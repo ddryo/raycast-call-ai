@@ -20,15 +20,7 @@
       "name": "ask-ai-new",
       "title": "New Chat",
       "description": "新しい会話で AI とチャットを始める",
-      "mode": "view",
-      "arguments": [
-        {
-          "name": "promptName",
-          "type": "text",
-          "placeholder": "プロンプト名",
-          "required": false
-        }
-      ]
+      "mode": "view"
     },
     {
       "name": "create-ai-prompt",
@@ -40,7 +32,15 @@
       "name": "use-prompt",
       "title": "Use Prompt",
       "description": "カスタムプロンプトを選んで会話を開始",
-      "mode": "view"
+      "mode": "view",
+      "arguments": [
+        {
+          "name": "promptName",
+          "type": "text",
+          "placeholder": "プロンプト名",
+          "required": false
+        }
+      ]
     },
     {
       "name": "ai-prompts",
@@ -199,6 +199,7 @@
   ],
   "dependencies": {
     "@raycast/api": "^1.93.2",
+    "@raycast/utils": "^2.2.2",
     "openai": "^4.82.0"
   },
   "devDependencies": {
