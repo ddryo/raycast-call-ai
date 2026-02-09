@@ -1,3 +1,6 @@
+// プロバイダー
+export type Provider = "openai-api" | "codex-cli" | "claude-cli";
+
 // メッセージの役割
 export type MessageRole = "user" | "assistant" | "system";
 
@@ -26,6 +29,7 @@ export interface CustomCommand {
   systemPrompt: string;
   model?: string;
   icon?: string; // Raycast Icon 名
+  provider?: string; // 未指定時は Preferences.provider を使用
 }
 
 // API エラー種別
@@ -48,4 +52,5 @@ export interface Preferences {
   apiKey: string;
   model: string;
   reasoningEffort: string;
+  provider: string;
 }

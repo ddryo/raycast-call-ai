@@ -9,7 +9,9 @@
 
 type ExtensionPreferences = {
   /** OpenAI API Key - OpenAI の API キー */
-  "apiKey": string,
+  "apiKey"?: string,
+  /** Provider - AI プロバイダー（API直接 or CLI経由） */
+  "provider": "openai-api" | "codex-cli" | "claude-cli",
   /** Model - 使用する GPT モデル */
   "model": "gpt-4.1-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-5-nano" | "gpt-5-mini" | "gpt-5.2",
   /** Reasoning Effort（推論モデル向け） - GPT-5 系モデルの推論レベル（4.1 系では無視されます） */

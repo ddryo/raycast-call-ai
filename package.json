@@ -39,10 +39,32 @@
     {
       "name": "apiKey",
       "type": "password",
-      "required": true,
+      "required": false,
       "title": "OpenAI API Key",
       "description": "OpenAI の API キー",
       "placeholder": "sk-..."
+    },
+    {
+      "name": "provider",
+      "type": "dropdown",
+      "required": false,
+      "title": "Provider",
+      "description": "AI プロバイダー（API直接 or CLI経由）",
+      "default": "openai-api",
+      "data": [
+        {
+          "title": "OpenAI API",
+          "value": "openai-api"
+        },
+        {
+          "title": "Codex CLI",
+          "value": "codex-cli"
+        },
+        {
+          "title": "Claude Code CLI",
+          "value": "claude-cli"
+        }
+      ]
     },
     {
       "name": "model",

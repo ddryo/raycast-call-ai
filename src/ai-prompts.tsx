@@ -16,6 +16,14 @@ import {
 import { useCustomCommands } from "./hooks/useCustomCommands";
 import { CustomCommand } from "./types";
 
+/** プロバイダー選択肢 */
+const PROVIDER_OPTIONS = [
+  { title: "デフォルト（Preferences に従う）", value: "" },
+  { title: "OpenAI API", value: "openai-api" },
+  { title: "Codex CLI", value: "codex-cli" },
+  { title: "Claude Code CLI", value: "claude-cli" },
+];
+
 /** モデル選択肢（create-ai-command.tsx と同一） */
 const MODEL_OPTIONS = [
   { title: "Default (Preferences)", value: "" },
@@ -60,6 +68,13 @@ function getModelLabel(model: string | undefined): string | undefined {
   return option ? option.title : model;
 }
 
+/** プロバイダー名の表示用ラベルを取得する */
+function getProviderLabel(provider: string | undefined): string | undefined {
+  if (!provider) return undefined;
+  const option = PROVIDER_OPTIONS.find((o) => o.value === provider);
+  return option ? option.title : provider;
+}
+
 /** システムプロンプトを切り詰めて表示する */
 function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
@@ -72,6 +87,7 @@ interface EditFormValues {
   systemPrompt: string;
   model: string;
   icon: string;
+  provider: string;
 }
 
 /** カスタムプロンプト編集フォーム */
@@ -107,6 +123,7 @@ function EditCommandForm({
       systemPrompt: values.systemPrompt.trim(),
       model: values.model || undefined,
       icon: values.icon || undefined,
+      provider: values.provider || undefined,
     };
 
     await onUpdate(updated);
@@ -143,6 +160,19 @@ function EditCommandForm({
         placeholder="システムプロンプトを入力..."
         defaultValue={command.systemPrompt}
       />
+      <Form.Dropdown
+        id="provider"
+        title="Provider"
+        defaultValue={command.provider ?? ""}
+      >
+        {PROVIDER_OPTIONS.map((opt) => (
+          <Form.Dropdown.Item
+            key={opt.value}
+            title={opt.title}
+            value={opt.value}
+          />
+        ))}
+      </Form.Dropdown>
       <Form.Dropdown
         id="model"
         title="Model"
@@ -181,7 +211,10 @@ function CreateCommandForm({
 
   async function handleSubmit(values: EditFormValues) {
     if (!values.name.trim()) {
-      await showToast({ style: Toast.Style.Failure, title: "名前を入力してください" });
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "名前を入力してください",
+      });
       return;
     }
 
@@ -191,10 +224,14 @@ function CreateCommandForm({
       systemPrompt: values.systemPrompt?.trim() ?? "",
       model: values.model || undefined,
       icon: values.icon || undefined,
+      provider: values.provider || undefined,
     };
 
     await onAdd(command);
-    await showToast({ style: Toast.Style.Success, title: "カスタムプロンプトを作成しました" });
+    await showToast({
+      style: Toast.Style.Success,
+      title: "カスタムプロンプトを作成しました",
+    });
     pop();
   }
 
@@ -202,21 +239,51 @@ function CreateCommandForm({
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Create Prompt" icon={Icon.PlusCircle} onSubmit={handleSubmit} />
+          <Action.SubmitForm
+            title="Create Prompt"
+            icon={Icon.PlusCircle}
+            onSubmit={handleSubmit}
+          />
         </ActionPanel>
       }
     >
-      <Form.TextField id="name" title="Name" placeholder="プロンプト名を入力..." />
-      <Form.TextArea id="systemPrompt" title="System Prompt" placeholder="システムプロンプトを入力..." />
+      <Form.TextField
+        id="name"
+        title="Name"
+        placeholder="プロンプト名を入力..."
+      />
+      <Form.TextArea
+        id="systemPrompt"
+        title="System Prompt"
+        placeholder="システムプロンプトを入力..."
+      />
+      <Form.Dropdown id="provider" title="Provider" defaultValue="">
+        {PROVIDER_OPTIONS.map((opt) => (
+          <Form.Dropdown.Item
+            key={opt.value}
+            title={opt.title}
+            value={opt.value}
+          />
+        ))}
+      </Form.Dropdown>
       <Form.Dropdown id="model" title="Model" defaultValue="">
         {MODEL_OPTIONS.map((opt) => (
-          <Form.Dropdown.Item key={opt.value} title={opt.title} value={opt.value} />
+          <Form.Dropdown.Item
+            key={opt.value}
+            title={opt.title}
+            value={opt.value}
+          />
         ))}
       </Form.Dropdown>
       <Form.Dropdown id="icon" title="Icon" defaultValue="">
         <Form.Dropdown.Item title="Default" value="" icon={Icon.Bubble} />
         {ICON_OPTIONS.map((opt) => (
-          <Form.Dropdown.Item key={opt.value} title={opt.title} value={opt.value} icon={opt.icon} />
+          <Form.Dropdown.Item
+            key={opt.value}
+            title={opt.title}
+            value={opt.value}
+            icon={opt.icon}
+          />
         ))}
       </Form.Dropdown>
     </Form>
@@ -258,52 +325,50 @@ export default function AICommands() {
   return (
     <List isLoading={isLoading}>
       {commands.map((command) => (
-          <List.Item
-            key={command.id}
-            title={command.name}
-            subtitle={truncate(command.systemPrompt, 60)}
-            icon={getIconByName(command.icon)}
-            accessories={[
-              ...(command.model
-                ? [{ text: getModelLabel(command.model) }]
-                : []),
-              { icon: Icon.Pencil, tooltip: "Edit" },
-            ]}
-            actions={
-              <ActionPanel>
-                <Action.Push
-                  title="Edit Prompt"
-                  icon={Icon.Pencil}
-                  target={
-                    <EditCommandForm
-                      command={command}
-                      onUpdate={updateCommand}
-                    />
-                  }
-                />
-                <Action
-                  title="Start Conversation"
-                  icon={Icon.Message}
-                  shortcut={{ modifiers: ["cmd"], key: "return" }}
-                  onAction={() => handleStartConversation(command)}
-                />
-                <Action.Push
-                  title="Create Prompt"
-                  icon={Icon.PlusCircle}
-                  shortcut={{ modifiers: ["cmd"], key: "n" }}
-                  target={<CreateCommandForm onAdd={addCommand} />}
-                />
-                <Action
-                  title="Delete Prompt"
-                  icon={Icon.Trash}
-                  style={Action.Style.Destructive}
-                  shortcut={{ modifiers: ["ctrl"], key: "x" }}
-                  onAction={() => handleDelete(command)}
-                />
-              </ActionPanel>
-            }
-          />
-        ))}
+        <List.Item
+          key={command.id}
+          title={command.name}
+          subtitle={truncate(command.systemPrompt, 60)}
+          icon={getIconByName(command.icon)}
+          accessories={[
+            ...(command.provider
+              ? [{ tag: getProviderLabel(command.provider) }]
+              : []),
+            ...(command.model ? [{ text: getModelLabel(command.model) }] : []),
+            { icon: Icon.Pencil, tooltip: "Edit" },
+          ]}
+          actions={
+            <ActionPanel>
+              <Action.Push
+                title="Edit Prompt"
+                icon={Icon.Pencil}
+                target={
+                  <EditCommandForm command={command} onUpdate={updateCommand} />
+                }
+              />
+              <Action
+                title="Start Conversation"
+                icon={Icon.Message}
+                shortcut={{ modifiers: ["cmd"], key: "return" }}
+                onAction={() => handleStartConversation(command)}
+              />
+              <Action.Push
+                title="Create Prompt"
+                icon={Icon.PlusCircle}
+                shortcut={{ modifiers: ["cmd"], key: "n" }}
+                target={<CreateCommandForm onAdd={addCommand} />}
+              />
+              <Action
+                title="Delete Prompt"
+                icon={Icon.Trash}
+                style={Action.Style.Destructive}
+                shortcut={{ modifiers: ["ctrl"], key: "x" }}
+                onAction={() => handleDelete(command)}
+              />
+            </ActionPanel>
+          }
+        />
+      ))}
       <List.Item
         key="__create__"
         title="新規プロンプトを作成..."

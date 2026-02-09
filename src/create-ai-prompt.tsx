@@ -11,6 +11,14 @@ import {
 import { addCustomCommand } from "./storage/custom-commands";
 import { CustomCommand } from "./types";
 
+/** プロバイダー選択肢 */
+const PROVIDER_OPTIONS = [
+  { title: "デフォルト（Preferences に従う）", value: "" },
+  { title: "OpenAI API", value: "openai-api" },
+  { title: "Codex CLI", value: "codex-cli" },
+  { title: "Claude Code CLI", value: "claude-cli" },
+];
+
 /** モデル選択肢（package.json の preferences.model.data と同じ + デフォルト） */
 const MODEL_OPTIONS = [
   { title: "Default (Preferences)", value: "" },
@@ -46,6 +54,7 @@ interface FormValues {
   systemPrompt: string;
   model: string;
   icon: string;
+  provider: string;
 }
 
 export default function CreateAICommand() {
@@ -74,6 +83,7 @@ export default function CreateAICommand() {
       systemPrompt: values.systemPrompt.trim(),
       model: values.model || undefined,
       icon: values.icon || undefined,
+      provider: values.provider || undefined,
     };
 
     await addCustomCommand(command);
@@ -108,6 +118,15 @@ export default function CreateAICommand() {
         title="System Prompt"
         placeholder="システムプロンプトを入力..."
       />
+      <Form.Dropdown id="provider" title="Provider" defaultValue="">
+        {PROVIDER_OPTIONS.map((opt) => (
+          <Form.Dropdown.Item
+            key={opt.value}
+            title={opt.title}
+            value={opt.value}
+          />
+        ))}
+      </Form.Dropdown>
       <Form.Dropdown id="model" title="Model" defaultValue="">
         {MODEL_OPTIONS.map((opt) => (
           <Form.Dropdown.Item

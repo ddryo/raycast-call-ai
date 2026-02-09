@@ -2,11 +2,8 @@ import { randomUUID } from "node:crypto";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { showToast, Toast, getPreferenceValues } from "@raycast/api";
 import { Message, Preferences, Thread } from "../types";
-import {
-  createChatCompletion,
-  classifyError,
-  trimMessagesForContext,
-} from "../services/openai";
+import { trimMessagesForContext } from "../services/openai";
+import { sendCompletion, classifyProviderError } from "../services/provider";
 import {
   DEFAULT_THREAD_ID,
   saveMessages,
@@ -192,22 +189,33 @@ export function useConversation(options?: {
       }
     }
 
+    // トークン上限チェック: 超過時は古いメッセージを切り捨て
+    const prefs = getPreferenceValues<Preferences>();
+
+    // カスタムコマンドの取得（Thread に customCommandId がある場合）
+    const currentThread = threadsRef.current.find((t) => t.id === threadId);
+    const customCmdId = currentThread?.customCommandId;
+    const customCmd = customCmdId
+      ? await getCustomCommand(customCmdId).catch(() => undefined)
+      : undefined;
+
+    // システムプロンプトの決定: カスタムコマンドから取得（未設定なら注入しない）
+    const systemPrompt = customCmd?.systemPrompt?.trim() || "";
+
+    // プロバイダーの決定: CustomCommand.provider > Preferences.provider > "openai-api"
+    const effectiveProvider =
+      customCmd?.provider || prefs.provider || "openai-api";
+
     try {
-      // トークン上限チェック: 超過時は古いメッセージを切り捨て
-      const prefs = getPreferenceValues<Preferences>();
-
-      // カスタムコマンドの取得（Thread に customCommandId がある場合）
-      const currentThread = threadsRef.current.find((t) => t.id === threadId);
-      const customCmdId = currentThread?.customCommandId;
-      const customCmd = customCmdId
-        ? await getCustomCommand(customCmdId).catch(() => undefined)
-        : undefined;
-
-      // システムプロンプトの決定: カスタムコマンドから取得（未設定なら注入しない）
-      const systemPrompt = customCmd?.systemPrompt?.trim() || "";
-
-      // モデルの決定: CustomCommand.model > Preferences.model
-      const effectiveModel = customCmd?.model ? customCmd.model : prefs.model;
+      // モデルの決定:
+      // - CustomCommand にモデル指定あり → それを使う（プロバイダー問わず）
+      // - なければ OpenAI API のときだけ Preferences.model を使う
+      // - CLI プロバイダーは未指定なら CLI 側のデフォルトに任せる
+      const effectiveModel = customCmd?.model
+        ? customCmd.model
+        : effectiveProvider === "openai-api"
+          ? prefs.model
+          : undefined;
 
       // システムプロンプトの注入（API送信時のみ、LocalStorageには保存しない）
       const messagesForApi = systemPrompt
@@ -225,7 +233,7 @@ export function useConversation(options?: {
 
       const { trimmed, wasTrimmed, exceedsLimit } = trimMessagesForContext(
         messagesForApi,
-        effectiveModel,
+        effectiveModel ?? prefs.model,
       );
 
       if (exceedsLimit) {
@@ -288,13 +296,13 @@ export function useConversation(options?: {
         lastFlush = Date.now();
       };
 
-      const result = await createChatCompletion(
-        trimmed,
-        effectiveModel,
-        () => {
+      const result = await sendCompletion(effectiveProvider, trimmed, {
+        model: effectiveModel,
+        systemPrompt,
+        onWebSearch: () => {
           setStatusText("Web検索中...");
         },
-        (textSoFar) => {
+        onDelta: (textSoFar) => {
           latestText = textSoFar;
           const now = Date.now();
           if (now - lastFlush >= THROTTLE_MS) {
@@ -313,7 +321,7 @@ export function useConversation(options?: {
             );
           }
         },
-      );
+      });
 
       if (flushTimer) {
         clearTimeout(flushTimer);
@@ -356,7 +364,7 @@ export function useConversation(options?: {
         });
       }
     } catch (error) {
-      const apiError = classifyError(error);
+      const apiError = classifyProviderError(effectiveProvider, error);
       await showToast({
         style: Toast.Style.Failure,
         title: "送信に失敗しました",
