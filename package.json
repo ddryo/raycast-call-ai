@@ -105,11 +105,11 @@
       "type": "dropdown",
       "required": false,
       "title": "Codex CLI Model",
-      "description": "Codex CLI 使用時のモデル。未指定時は CLI のローカル設定に従います",
+      "description": "Codex CLI 使用時のモデル。",
       "default": "",
       "data": [
         {
-          "title": "未指定（CLI のローカル設定を使用）",
+          "title": "CLI のローカル設定を使用",
           "value": ""
         },
         {
@@ -123,6 +123,10 @@
         {
           "title": "GPT-5.2",
           "value": "gpt-5.2"
+        },
+        {
+          "title": "GPT-5.1 Codex Mini",
+          "value": "gpt-5.1-codex-mini"
         }
       ]
     },
@@ -131,11 +135,11 @@
       "type": "dropdown",
       "required": false,
       "title": "Codex CLI Reasoning Effort",
-      "description": "Codex CLI 使用時の推論レベル。未指定時は CLI のローカル設定に従います",
+      "description": "Codex CLI 使用時の推論レベル。",
       "default": "",
       "data": [
         {
-          "title": "未指定（CLI のローカル設定を使用）",
+          "title": "CLI のローカル設定を使用",
           "value": ""
         },
         {
@@ -157,11 +161,11 @@
       "type": "dropdown",
       "required": false,
       "title": "Claude CLI Model",
-      "description": "Claude Code CLI 使用時のモデル。未指定時は CLI のローカル設定に従います",
+      "description": "Claude Code CLI 使用時のモデル。",
       "default": "",
       "data": [
         {
-          "title": "未指定（CLI のローカル設定を使用）",
+          "title": "CLI のローカル設定を使用",
           "value": ""
         },
         {
