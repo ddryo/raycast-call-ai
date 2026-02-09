@@ -82,3 +82,11 @@ export async function getCustomPrompt(
   const prompts = await loadCustomPrompts();
   return prompts.find((p) => p.id === id);
 }
+
+// カスタムプロンプトを名前で検索（大文字小文字を区別しない）
+export async function findCustomPromptByName(
+  name: string,
+): Promise<CustomCommand | undefined> {
+  const prompts = await loadCustomPrompts();
+  return prompts.find((p) => p.name.toLowerCase() === name.toLowerCase());
+}

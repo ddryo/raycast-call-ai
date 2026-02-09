@@ -115,13 +115,15 @@ function MultiLineForm({
 export default function AskAI(
   props: LaunchProps<{ launchContext: { customCommandId?: string } }> & {
     startNew?: boolean;
+    customCommandId?: string;
   } = {} as LaunchProps<{ launchContext: { customCommandId?: string } }> & {
     startNew?: boolean;
+    customCommandId?: string;
   },
 ) {
   const startNew = props.startNew ?? false;
   const launchCustomCommandId =
-    props.launchContext?.customCommandId ?? undefined;
+    props.customCommandId ?? props.launchContext?.customCommandId ?? undefined;
   // launchContext がある場合は startNew と同様に新規スレッドを作成
   const shouldStartNew = startNew || !!launchCustomCommandId;
 
@@ -133,6 +135,7 @@ export default function AskAI(
     clearMessages,
     createThread,
     threads,
+    currentThreadId,
     deleteThread,
     messageCache,
     selectThread,
@@ -145,7 +148,6 @@ export default function AskAI(
   const { commands: customCommands } = useCustomCommands();
   const [searchText, setSearchText] = useState("");
   const [focusTarget, setFocusTarget] = useState<string | undefined>(undefined);
-  const [selectedThreadId, setSelectedThreadId] = useState<string | undefined>(undefined);
 
   /** SearchBar の Enter 押下時にメッセージを送信する */
   async function handleSend() {
@@ -203,7 +205,6 @@ export default function AskAI(
   function handleSelectionChange(threadId: string | null) {
     if (focusTarget) setFocusTarget(undefined);
     if (threadId) {
-      setSelectedThreadId(threadId);
       selectThread(threadId);
       loadThreadMessages(threadId);
     }
@@ -211,16 +212,15 @@ export default function AskAI(
 
   /** 現在フォーカス中のスレッドの customCommandId を取得する */
   function getCurrentCustomCommandId(): string {
-    if (!selectedThreadId) return "";
-    const currentThread = threads.find((t) => t.id === selectedThreadId);
+    const currentThread = threads.find((t) => t.id === currentThreadId);
     return currentThread?.customCommandId ?? "";
   }
 
   /** ドロップダウンでカスタムプロンプトを切り替えた時 */
   async function handleDropdownChange(value: string) {
-    if (!selectedThreadId) return;
+    if (!currentThreadId) return;
     const newCustomCommandId = value === "" ? undefined : value;
-    await updateThreadCustomCommand(selectedThreadId, newCustomCommandId);
+    await updateThreadCustomCommand(currentThreadId, newCustomCommandId);
   }
 
   return (

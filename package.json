@@ -20,7 +20,15 @@
       "name": "ask-ai-new",
       "title": "New Chat",
       "description": "新しい会話で AI とチャットを始める",
-      "mode": "view"
+      "mode": "view",
+      "arguments": [
+        {
+          "name": "promptName",
+          "type": "text",
+          "placeholder": "プロンプト名",
+          "required": false
+        }
+      ]
     },
     {
       "name": "create-ai-prompt",

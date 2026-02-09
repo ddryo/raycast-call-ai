@@ -40,7 +40,10 @@ declare namespace Arguments {
   /** Arguments passed to the `ask-ai` command */
   export type AskAi = {}
   /** Arguments passed to the `ask-ai-new` command */
-  export type AskAiNew = {}
+  export type AskAiNew = {
+  /** プロンプト名 */
+  "promptName": string
+}
   /** Arguments passed to the `create-ai-prompt` command */
   export type CreateAiPrompt = {}
   /** Arguments passed to the `ai-prompts` command */
