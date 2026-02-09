@@ -284,6 +284,7 @@ export function useConversation(options?: {
       let lastFlush = 0;
       let latestText = "";
       let flushTimer: ReturnType<typeof setTimeout> | null = null;
+      let isFirstDelta = true;
       const THROTTLE_MS = 150;
 
       const flushToUI = () => {
@@ -312,6 +313,11 @@ export function useConversation(options?: {
           setStatusText("Web検索中...");
         },
         onDelta: (textSoFar) => {
+          // 最初のチャンク受信時にステータス表示を消す
+          if (isFirstDelta) {
+            isFirstDelta = false;
+            setStatusText(null);
+          }
           latestText = textSoFar;
           const now = Date.now();
           if (now - lastFlush >= THROTTLE_MS) {
