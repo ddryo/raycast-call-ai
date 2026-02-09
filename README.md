@@ -83,3 +83,55 @@ security delete-generic-password -s "claude-code"
 - カスタムプロンプト（システムプロンプト + モデル + プロバイダーの組み合わせ）
 - 会話履歴の永続化
 - Web 検索（OpenAI API 使用時）
+
+## コマンド一覧
+
+| コマンド | 説明 |
+|----------|------|
+| **Chat History** | 会話履歴を表示し、既存スレッドで AI とチャット |
+| **New Chat** | 新しいスレッドを作成して AI とチャットを開始 |
+| **Use Prompt** | カスタムプロンプトを選んで会話を開始（引数でプロンプト名を直接指定可） |
+| **Manage Prompts** | カスタムプロンプトの作成・編集・削除 |
+
+## アクション（ショートカットキー）
+
+### Chat History / New Chat
+
+| アクション | ショートカット | 説明 |
+|---|---|---|
+| Send Message | `↵` | 入力テキストを AI に送信 |
+| Copy Last Response | `⌘⇧C` | 最後の AI 応答をクリップボードにコピー（応答がある場合のみ） |
+| Multiline Input | `⌘L` | 複数行入力フォームを開く |
+| New Conversation | `⌘N` | 新規スレッドを作成 |
+| Clear Conversation | `⌘⇧⌫` | 現在のスレッドの会話をクリア |
+| Delete Conversation | `⌃D` | スレッドを削除 |
+
+#### Multiline Input フォーム
+
+| アクション | ショートカット | 説明 |
+|---|---|---|
+| Send Message | `⌘↵` | 入力テキストを送信 |
+
+### Use Prompt
+
+| アクション | ショートカット | 説明 |
+|---|---|---|
+| Start Conversation | `↵` | 選択したプロンプトで会話を開始 |
+| Create Quicklink | `⌘⇧L` | 選択プロンプトへの Quicklink を作成 |
+| Manage Prompts | − | Manage Prompts コマンドを起動 |
+
+### Manage Prompts
+
+| アクション | ショートカット | 説明 |
+|---|---|---|
+| Edit Prompt | `↵` | 編集フォームを開く |
+| Start Conversation | `⌘↵` | そのプロンプトで会話を開始 |
+| Create Quicklink | `⌘⇧L` | Quicklink を作成 |
+| Create Prompt | `⌘N` | 新規作成フォームを開く |
+| Delete Prompt | `⌃X` | プロンプトを削除（デフォルトプロンプト以外） |
+
+#### 編集 / 作成フォーム
+
+| アクション | ショートカット | 説明 |
+|---|---|---|
+| Update Prompt / Create Prompt | `⌘↵` | フォーム内容を保存 |

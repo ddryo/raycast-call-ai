@@ -93,7 +93,6 @@ export default function UsePrompt(
               <Action
                 title="Manage Prompts"
                 icon={Icon.Gear}
-                shortcut={{ modifiers: ["cmd"], key: "," }}
                 onAction={() =>
                   launchCommand({
                     name: "ai-prompts",
