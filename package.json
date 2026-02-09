@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "ask-ai",
   "title": "Ask AI",
-  "description": "OpenAI API を利用したチャットインターフェース。ランチャーから離れることなく AI との対話を完結させます。",
+  "description": "複数の AI プロバイダーに対応したチャットインターフェース。ランチャーから離れることなく AI との対話を完結させます。",
   "icon": "command-icon.png",
   "author": "ryo",
   "categories": [

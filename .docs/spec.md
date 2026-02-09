@@ -25,8 +25,8 @@ Raycast 上で複数の AI プロバイダーを利用したチャットイン�
 | FR-009 | メッセージコピー | 最後の AI レスポンスの内容をクリップボードにコピーする | Should | o |
 | FR-010 | スレッド管理 | 複数の会話スレッドを作成・切替・削除する | Should | o |
 | FR-011 | スレッド一覧 | 保存済みスレッドをリスト表示し、選択して会話を再開する | Should | o |
-| FR-012 | 履歴上限管理 | トークン超過時に古いメッセージを切り捨てて送信する（OpenAI API のみ） | Could | o |
-| FR-013 | デフォルトプロンプト | 初回起動時にデフォルトのカスタムプロンプトを自動生成し、全新規会話に適用する | Should | o |
+| FR-012 | 履歴上限管理 | トークン超過時に古いメッセージを切り捨てて送信する | Could | o |
+| FR-013 | デフォルトプロンプト | 初回起動時にデフォルトのカスタムプロンプトを自動生成する | Should | o |
 | FR-014 | カスタムプロンプト作成 | Form で名前・システムプロンプト・プロバイダー・モデル・アイコンを指定してカスタムプロンプトを作成する | Should | o |
 | FR-015 | カスタムプロンプト一覧管理 | カスタムプロンプトの一覧表示・編集・削除・会話開始を行う | Should | o |
 | FR-016 | カスタムプロンプト切替 | チャット画面の SearchBar 横ドロップダウンでカスタムプロンプトを切り替える | Should | o |
@@ -122,7 +122,7 @@ ask-ai.tsx（メインコマンド）
   │     │     5. プロバイダー決定: CustomPrompt.provider > Preferences.provider
   │     │     6. モデル決定: CustomPrompt.model > プロバイダー別 Preferences
   │     │     7. システムプロンプト注入（API送信時のみ、LocalStorage には保存しない）
-  │     │     8. trimMessagesForContext() でトークン上限チェック（OpenAI API のみ実効）
+  │     │     8. trimMessagesForContext() でトークン上限チェック
   │     │     9. sendCompletion() → ストリーミング逐次 UI 更新（150ms スロットリング）
   │     │    10. assistant メッセージにモデル名タグ・Web検索タグを付与
   │     ├── clearMessages / createThread / selectThread / deleteThread
@@ -194,7 +194,7 @@ ask-ai.tsx（メインコマンド）
    - Codex CLI → `Preferences.codexModel`（未指定なら CLI ローカル設定に委任）
    - Claude CLI → `Preferences.claudeModel`（未指定なら CLI ローカル設定に委任）
 8. システムプロンプト注入（API送信時のみ、LocalStorage には保存しない）
-9. `trimMessagesForContext()` でトークン上限チェック（OpenAI API のみ実効）
+9. `trimMessagesForContext()` でトークン上限チェック（全プロバイダーで実行、モデルにより上限差）
 10. `sendCompletion()` でプロバイダーに応じた API 呼び出し
     - OpenAI API: ストリーミング + Web 検索
     - CLI: spawn プロセス（Claude はストリーミング、Codex は一括）
