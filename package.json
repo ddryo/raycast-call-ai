@@ -22,13 +22,7 @@
       "description": "新しい会話で AI とチャットを始める",
       "mode": "view"
     },
-    {
-      "name": "create-ai-prompt",
-      "title": "Create Prompt",
-      "description": "AI カスタムプロンプトを作成する",
-      "mode": "view"
-    },
-    {
+{
       "name": "use-prompt",
       "title": "Use Prompt",
       "description": "カスタムプロンプトを選んで会話を開始",

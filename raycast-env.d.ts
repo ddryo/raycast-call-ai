@@ -30,8 +30,6 @@ declare namespace Preferences {
   export type AskAi = ExtensionPreferences & {}
   /** Preferences accessible in the `ask-ai-new` command */
   export type AskAiNew = ExtensionPreferences & {}
-  /** Preferences accessible in the `create-ai-prompt` command */
-  export type CreateAiPrompt = ExtensionPreferences & {}
   /** Preferences accessible in the `use-prompt` command */
   export type UsePrompt = ExtensionPreferences & {}
   /** Preferences accessible in the `ai-prompts` command */
@@ -43,8 +41,6 @@ declare namespace Arguments {
   export type AskAi = {}
   /** Arguments passed to the `ask-ai-new` command */
   export type AskAiNew = {}
-  /** Arguments passed to the `create-ai-prompt` command */
-  export type CreateAiPrompt = {}
   /** Arguments passed to the `use-prompt` command */
   export type UsePrompt = {
   /** プロンプト名 */
