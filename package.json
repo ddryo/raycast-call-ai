@@ -37,6 +37,12 @@
       "mode": "view"
     },
     {
+      "name": "use-prompt",
+      "title": "Use Prompt",
+      "description": "カスタムプロンプトを選んで会話を開始",
+      "mode": "view"
+    },
+    {
       "name": "ai-prompts",
       "title": "Manage Prompts",
       "description": "AI カスタムプロンプトの一覧管理",
