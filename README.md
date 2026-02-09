@@ -104,7 +104,7 @@ security delete-generic-password -s "claude-code"
 | Multiline Input | `⌘L` | 複数行入力フォームを開く |
 | New Conversation | `⌘N` | 新規スレッドを作成 |
 | Clear Conversation | `⌘⇧⌫` | 現在のスレッドの会話をクリア |
-| Delete Conversation | `⌃D` | スレッドを削除 |
+| Delete Conversation | `⌃X` | スレッドを削除 |
 
 #### Multiline Input フォーム
 
