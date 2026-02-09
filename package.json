@@ -12,7 +12,7 @@
   "commands": [
     {
       "name": "ask-ai",
-      "title": "Continue Chat",
+      "title": "Chat History",
       "description": "AI とチャットで会話する",
       "mode": "view"
     },
