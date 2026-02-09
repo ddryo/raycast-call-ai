@@ -162,7 +162,7 @@ export async function createChatCompletion(
     stream: true,
     ...(isReasoning && {
       reasoning: {
-        effort: prefs.reasoningEffort as "low" | "medium" | "high",
+        effort: "low" as const,
       },
     }),
   });

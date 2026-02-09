@@ -209,12 +209,20 @@ export function useConversation(options?: {
     try {
       // モデルの決定:
       // - CustomCommand にモデル指定あり → それを使う（プロバイダー問わず）
-      // - なければ OpenAI API のときだけ Preferences.model を使う
-      // - CLI プロバイダーは未指定なら CLI 側のデフォルトに任せる
+      // - OpenAI API → Preferences.model を使う
+      // - CLI プロバイダー → プロバイダーごとの Preferences があればそれを使う、なければ CLI のローカル設定に任せる
       const effectiveModel = customCmd?.model
         ? customCmd.model
         : effectiveProvider === "openai-api"
           ? prefs.model
+          : effectiveProvider === "claude-cli"
+            ? prefs.claudeModel || undefined
+            : prefs.codexModel || undefined;
+
+      // Codex CLI 用の推論レベル（Preferences で明示指定があれば渡す）
+      const effectiveReasoningEffort =
+        effectiveProvider === "codex-cli" && prefs.codexReasoningEffort
+          ? prefs.codexReasoningEffort
           : undefined;
 
       // システムプロンプトの注入（API送信時のみ、LocalStorageには保存しない）
@@ -298,6 +306,7 @@ export function useConversation(options?: {
 
       const result = await sendCompletion(effectiveProvider, trimmed, {
         model: effectiveModel,
+        reasoningEffort: effectiveReasoningEffort,
         systemPrompt,
         onWebSearch: () => {
           setStatusText("Web検索中...");

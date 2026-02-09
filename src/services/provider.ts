@@ -54,6 +54,7 @@ export async function sendCompletion(
   messages: Message[],
   options?: {
     model?: string;
+    reasoningEffort?: string;
     systemPrompt?: string;
     onWebSearch?: () => void;
     onDelta?: (textSoFar: string) => void;
@@ -73,6 +74,7 @@ export async function sendCompletion(
     messages,
     {
       model: options?.model,
+      reasoningEffort: options?.reasoningEffort,
       systemPrompt: options?.systemPrompt,
       onDelta: options?.onDelta,
     },

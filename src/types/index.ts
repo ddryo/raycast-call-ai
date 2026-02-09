@@ -51,6 +51,8 @@ export interface ApiError {
 export interface Preferences {
   apiKey: string;
   model: string;
-  reasoningEffort: string;
+  claudeModel: string;
+  codexModel: string;
+  codexReasoningEffort: string;
   provider: string;
 }

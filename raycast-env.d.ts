@@ -14,8 +14,12 @@ type ExtensionPreferences = {
   "provider": "openai-api" | "codex-cli" | "claude-cli",
   /** Model - 使用する GPT モデル */
   "model": "gpt-4.1-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-5-nano" | "gpt-5-mini" | "gpt-5.2",
-  /** Reasoning Effort（推論モデル向け） - GPT-5 系モデルの推論レベル（4.1 系では無視されます） */
-  "reasoningEffort": "low" | "medium" | "high"
+  /** Claude CLI Model - Claude Code CLI 使用時のモデル。未指定時は CLI のローカル設定に従います。 */
+  "claudeModel": "" | "opus" | "sonnet" | "haiku",
+  /** Codex CLI Model - Codex CLI 使用時のモデル。未指定時は CLI のローカル設定に従います。 */
+  "codexModel": "" | "gpt-5.3-codex" | "gpt-5.2-codex" | "gpt-5.2",
+  /** Codex Reasoning Effort - Codex CLI の推論レベル。未指定時は CLI のローカル設定に従います。 */
+  "codexReasoningEffort": "" | "low" | "medium" | "high"
 }
 
 /** Preferences accessible in all the extension's commands */

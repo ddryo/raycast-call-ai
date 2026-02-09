@@ -101,13 +101,69 @@
       ]
     },
     {
-      "name": "reasoningEffort",
+      "name": "claudeModel",
       "type": "dropdown",
       "required": false,
-      "title": "Reasoning Effort（推論モデル向け）",
-      "description": "GPT-5 系モデルの推論レベル（4.1 系では無視されます）",
-      "default": "medium",
+      "title": "Claude CLI Model",
+      "description": "Claude Code CLI 使用時のモデル。未指定時は CLI のローカル設定に従います。",
+      "default": "",
       "data": [
+        {
+          "title": "未指定（CLI のローカル設定を使用）",
+          "value": ""
+        },
+        {
+          "title": "Opus",
+          "value": "opus"
+        },
+        {
+          "title": "Sonnet",
+          "value": "sonnet"
+        },
+        {
+          "title": "Haiku",
+          "value": "haiku"
+        }
+      ]
+    },
+    {
+      "name": "codexModel",
+      "type": "dropdown",
+      "required": false,
+      "title": "Codex CLI Model",
+      "description": "Codex CLI 使用時のモデル。未指定時は CLI のローカル設定に従います。",
+      "default": "",
+      "data": [
+        {
+          "title": "未指定（CLI のローカル設定を使用）",
+          "value": ""
+        },
+        {
+          "title": "GPT-5.3 Codex",
+          "value": "gpt-5.3-codex"
+        },
+        {
+          "title": "GPT-5.2 Codex",
+          "value": "gpt-5.2-codex"
+        },
+        {
+          "title": "GPT-5.2",
+          "value": "gpt-5.2"
+        }
+      ]
+    },
+    {
+      "name": "codexReasoningEffort",
+      "type": "dropdown",
+      "required": false,
+      "title": "Codex Reasoning Effort",
+      "description": "Codex CLI の推論レベル。未指定時は CLI のローカル設定に従います。",
+      "default": "",
+      "data": [
+        {
+          "title": "未指定（CLI のローカル設定を使用）",
+          "value": ""
+        },
         {
           "title": "Low",
           "value": "low"

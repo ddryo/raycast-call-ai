@@ -62,11 +62,8 @@ function getEnvWithPath(): NodeJS.ProcessEnv {
 // タイムアウト（ミリ秒）
 const TIMEOUT_MS = 120_000;
 
-// デフォルトモデル
-const DEFAULT_MODELS = {
-  "codex-cli": "gpt-5.3-codex",
-  "claude-cli": "sonnet",
-} as const;
+// モデル名が取得できなかった場合のフォールバック表示
+const MODEL_UNKNOWN = "（取得失敗）";
 
 /**
  * 会話履歴をプロンプト文字列に変換する
@@ -323,12 +320,24 @@ function parseCodexOutput(stdout: string): string {
 async function runCodexCli(
   messages: Message[],
   options?: {
+    model?: string;
+    reasoningEffort?: string;
     systemPrompt?: string;
     onDelta?: (textSoFar: string) => void;
   },
 ): Promise<ChatCompletionResult> {
   const prompt = formatMessages(messages, options?.systemPrompt);
-  const args = ["exec", "--skip-git-repo-check", prompt];
+  const args = ["exec", "--skip-git-repo-check"];
+
+  if (options?.model) {
+    args.push("-m", options.model);
+  }
+
+  if (options?.reasoningEffort) {
+    args.push("-c", `model_reasoning_effort="${options.reasoningEffort}"`);
+  }
+
+  args.push(prompt);
 
   const { stdout, stderr, exitCode } = await spawnCli(
     CLI_PATHS["codex-cli"],
@@ -349,7 +358,7 @@ async function runCodexCli(
   return {
     content,
     usedWebSearch: false,
-    model: DEFAULT_MODELS["codex-cli"],
+    model: options?.model ?? MODEL_UNKNOWN,
   };
 }
 
@@ -396,7 +405,7 @@ async function runClaudeCli(
 
   return {
     ...result,
-    model: result.model !== "claude" ? result.model : (options?.model ?? DEFAULT_MODELS["claude-cli"]),
+    model: result.model !== "claude" ? result.model : (options?.model ?? MODEL_UNKNOWN),
   };
 }
 
@@ -408,6 +417,7 @@ export async function createCliCompletion(
   messages: Message[],
   options?: {
     model?: string;
+    reasoningEffort?: string;
     systemPrompt?: string;
     onDelta?: (textSoFar: string) => void;
   },
