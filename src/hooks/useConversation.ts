@@ -172,20 +172,26 @@ export function useConversation(options?: {
     setStatusText("考え中...");
     setLoadingThreadId(threadId);
 
-    // スレッドタイトルの自動生成: 初回送信時（既存メッセージが0件のとき）
-    if (messagesRef.current.length === 0) {
+    // スレッドの updatedAt を即座に更新（リスト並び順に即反映するため）
+    {
+      const now = new Date().toISOString();
+      // スレッドタイトルの自動生成: 初回送信時（既存メッセージが0件のとき）
       const autoTitle =
-        content.length > 30 ? content.slice(0, 30) + "..." : content;
+        messagesRef.current.length === 0
+          ? content.length > 30
+            ? content.slice(0, 30) + "..."
+            : content
+          : undefined;
       const updatedThreads = threadsRef.current.map((t) =>
         t.id === threadId
-          ? { ...t, title: autoTitle, updatedAt: new Date().toISOString() }
+          ? { ...t, ...(autoTitle ? { title: autoTitle } : {}), updatedAt: now }
           : t,
       );
       setThreads(updatedThreads);
       try {
         await saveThreads(updatedThreads);
       } catch {
-        // タイトル保存失敗は致命的ではないので無視
+        // 保存失敗は致命的ではないので無視
       }
     }
 
