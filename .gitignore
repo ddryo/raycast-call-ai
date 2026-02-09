@@ -1,9 +1,12 @@
 node_modules
 dist
-.review
 .env
 .DS_Store
 *.log
+
+
+# project workflow files
 .todo.md
 .claude
 .codex
+.review
