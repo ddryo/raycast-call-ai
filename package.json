@@ -37,19 +37,11 @@
   ],
   "preferences": [
     {
-      "name": "apiKey",
-      "type": "password",
-      "required": false,
-      "title": "OpenAI API Key",
-      "description": "OpenAI の API キー",
-      "placeholder": "sk-..."
-    },
-    {
       "name": "provider",
       "type": "dropdown",
       "required": false,
       "title": "Provider",
-      "description": "AI プロバイダー（API直接 or CLI経由）",
+      "description": "AI プロバイダーを選択",
       "default": "openai-api",
       "data": [
         {
@@ -67,11 +59,19 @@
       ]
     },
     {
+      "name": "apiKey",
+      "type": "password",
+      "required": false,
+      "title": "OpenAI API Key",
+      "description": "OpenAI API 使用時のみ必要",
+      "placeholder": "sk-..."
+    },
+    {
       "name": "model",
       "type": "dropdown",
       "required": false,
-      "title": "Model",
-      "description": "使用する GPT モデル",
+      "title": "OpenAI Model",
+      "description": "OpenAI API 使用時のモデル",
       "default": "gpt-4.1-nano",
       "data": [
         {
@@ -101,37 +101,11 @@
       ]
     },
     {
-      "name": "claudeModel",
-      "type": "dropdown",
-      "required": false,
-      "title": "Claude CLI Model",
-      "description": "Claude Code CLI 使用時のモデル。未指定時は CLI のローカル設定に従います。",
-      "default": "",
-      "data": [
-        {
-          "title": "未指定（CLI のローカル設定を使用）",
-          "value": ""
-        },
-        {
-          "title": "Opus",
-          "value": "opus"
-        },
-        {
-          "title": "Sonnet",
-          "value": "sonnet"
-        },
-        {
-          "title": "Haiku",
-          "value": "haiku"
-        }
-      ]
-    },
-    {
       "name": "codexModel",
       "type": "dropdown",
       "required": false,
       "title": "Codex CLI Model",
-      "description": "Codex CLI 使用時のモデル。未指定時は CLI のローカル設定に従います。",
+      "description": "Codex CLI 使用時のモデル。未指定時は CLI のローカル設定に従います",
       "default": "",
       "data": [
         {
@@ -156,8 +130,8 @@
       "name": "codexReasoningEffort",
       "type": "dropdown",
       "required": false,
-      "title": "Codex Reasoning Effort",
-      "description": "Codex CLI の推論レベル。未指定時は CLI のローカル設定に従います。",
+      "title": "Codex CLI Reasoning Effort",
+      "description": "Codex CLI 使用時の推論レベル。未指定時は CLI のローカル設定に従います",
       "default": "",
       "data": [
         {
@@ -175,6 +149,32 @@
         {
           "title": "High",
           "value": "high"
+        }
+      ]
+    },
+    {
+      "name": "claudeModel",
+      "type": "dropdown",
+      "required": false,
+      "title": "Claude CLI Model",
+      "description": "Claude Code CLI 使用時のモデル。未指定時は CLI のローカル設定に従います",
+      "default": "",
+      "data": [
+        {
+          "title": "未指定（CLI のローカル設定を使用）",
+          "value": ""
+        },
+        {
+          "title": "Opus",
+          "value": "opus"
+        },
+        {
+          "title": "Sonnet",
+          "value": "sonnet"
+        },
+        {
+          "title": "Haiku",
+          "value": "haiku"
         }
       ]
     }
