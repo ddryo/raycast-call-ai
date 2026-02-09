@@ -24,8 +24,8 @@
     },
 {
       "name": "use-prompt",
-      "title": "Use Prompt",
-      "description": "カスタムプロンプトを選んで会話を開始",
+      "title": "Use Preset",
+      "description": "プリセットを選んで会話を開始",
       "mode": "view",
       "arguments": [
         {
@@ -38,8 +38,8 @@
     },
     {
       "name": "ai-prompts",
-      "title": "Manage Models & Prompts",
-      "description": "AI モデル・プロンプトの設定管理",
+      "title": "Manage Presets",
+      "description": "AI プリセットの設定管理",
       "mode": "view"
     }
   ],
