@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Action,
   ActionPanel,
   Alert,
   confirmAlert,
   Form,
+  getPreferenceValues,
   Icon,
   LaunchProps,
   LaunchType,
@@ -17,26 +18,67 @@ import {
 } from "@raycast/api";
 import { createDeeplink } from "@raycast/utils";
 import { useCustomCommands } from "./hooks/useCustomCommands";
-import { CustomCommand } from "./types";
+import { CustomCommand, Preferences } from "./types";
 
-/** プロバイダー選択肢 */
-const PROVIDER_OPTIONS = [
-  { title: "デフォルト（Preferences に従う）", value: "" },
-  { title: "OpenAI API", value: "openai-api" },
-  { title: "Codex CLI", value: "codex-cli" },
-  { title: "Claude Code CLI", value: "claude-cli" },
+/** OpenAI API キーが設定されているか */
+function hasApiKey(): boolean {
+  try {
+    const { apiKey } = getPreferenceValues<Preferences>();
+    return !!apiKey?.trim();
+  } catch {
+    return false;
+  }
+}
+
+/** プロバイダー選択肢を生成する */
+function getProviderOptions(): { title: string; value: string }[] {
+  const apiKeySet = hasApiKey();
+  return [
+    {
+      title: apiKeySet ? "OpenAI API" : "OpenAI API（APIキーを設定してください）",
+      value: "openai-api",
+    },
+    { title: "Codex CLI", value: "codex-cli" },
+    { title: "Claude Code CLI", value: "claude-cli" },
+  ];
+}
+
+/** プロバイダー別モデル選択肢 */
+const MODEL_OPTIONS_BY_PROVIDER: Record<string, { title: string; value: string }[]> = {
+  "openai-api": [
+    { title: "GPT-4.1 nano（デフォルト）", value: "" },
+    { title: "GPT-4.1 nano", value: "gpt-4.1-nano" },
+    { title: "GPT-4.1 mini", value: "gpt-4.1-mini" },
+    { title: "GPT-4.1", value: "gpt-4.1" },
+    { title: "GPT-5 nano", value: "gpt-5-nano" },
+    { title: "GPT-5 mini", value: "gpt-5-mini" },
+    { title: "GPT-5.2", value: "gpt-5.2" },
+  ],
+  "codex-cli": [
+    { title: "デフォルト（CLI のローカル設定）", value: "" },
+    { title: "GPT-5.3 Codex", value: "gpt-5.3-codex" },
+    { title: "GPT-5.2 Codex", value: "gpt-5.2-codex" },
+    { title: "GPT-5.2", value: "gpt-5.2" },
+    { title: "GPT-5.1 Codex Mini", value: "gpt-5.1-codex-mini" },
+  ],
+  "claude-cli": [
+    { title: "デフォルト（CLI のローカル設定）", value: "" },
+    { title: "Opus", value: "opus" },
+    { title: "Sonnet", value: "sonnet" },
+    { title: "Haiku", value: "haiku" },
+  ],
+};
+
+/** 推論レベル選択肢（Codex CLI 用） */
+const REASONING_EFFORT_OPTIONS = [
+  { title: "デフォルト（CLI のローカル設定）", value: "" },
+  { title: "Low", value: "low" },
+  { title: "Medium", value: "medium" },
+  { title: "High", value: "high" },
 ];
 
-/** モデル選択肢 */
-const MODEL_OPTIONS = [
-  { title: "Default (Preferences)", value: "" },
-  { title: "GPT-4.1 nano", value: "gpt-4.1-nano" },
-  { title: "GPT-4.1 mini", value: "gpt-4.1-mini" },
-  { title: "GPT-4.1", value: "gpt-4.1" },
-  { title: "GPT-5 nano", value: "gpt-5-nano" },
-  { title: "GPT-5 mini", value: "gpt-5-mini" },
-  { title: "GPT-5.2", value: "gpt-5.2" },
-];
+/** 全プロバイダーのモデルをフラットにしたリスト（表示用ラベル取得） */
+const ALL_MODEL_OPTIONS = Object.values(MODEL_OPTIONS_BY_PROVIDER).flat();
 
 /** アイコン選択肢 */
 // https://developers.raycast.com/api-reference/user-interface/icons-and-images
@@ -79,15 +121,19 @@ function getIconByName(name: string | undefined): Icon {
 /** モデル名の表示用ラベルを取得する */
 function getModelLabel(model: string | undefined): string | undefined {
   if (!model) return undefined;
-  const option = MODEL_OPTIONS.find((o) => o.value === model);
+  const option = ALL_MODEL_OPTIONS.find((o) => o.value === model);
   return option ? option.title : model;
 }
 
 /** プロバイダー名の表示用ラベルを取得する */
+const PROVIDER_LABELS: Record<string, string> = {
+  "openai-api": "OpenAI API",
+  "codex-cli": "Codex CLI",
+  "claude-cli": "Claude Code CLI",
+};
 function getProviderLabel(provider: string | undefined): string | undefined {
   if (!provider) return undefined;
-  const option = PROVIDER_OPTIONS.find((o) => o.value === provider);
-  return option ? option.title : provider;
+  return PROVIDER_LABELS[provider] ?? provider;
 }
 
 /** システムプロンプトを切り詰めて表示する */
@@ -103,6 +149,20 @@ interface EditFormValues {
   model: string;
   icon: string;
   provider: string;
+  reasoningEffort: string;
+}
+
+/** OpenAI API キー未設定時のバリデーション */
+async function validateApiKey(provider: string): Promise<boolean> {
+  if (provider === "openai-api" && !hasApiKey()) {
+    await showToast({
+      style: Toast.Style.Failure,
+      title: "OpenAI API キーが未設定です",
+      message: "Raycast の拡張機能設定から API キーを設定してください",
+    });
+    return false;
+  }
+  return true;
 }
 
 /** カスタムプロンプト編集フォーム */
@@ -114,6 +174,10 @@ function EditCommandForm({
   onUpdate: (updated: CustomCommand) => Promise<void>;
 }) {
   const { pop } = useNavigation();
+  const [selectedProvider, setSelectedProvider] = useState(command.provider ?? "openai-api");
+  const providerOptions = getProviderOptions();
+
+  const modelOptions = MODEL_OPTIONS_BY_PROVIDER[selectedProvider] ?? MODEL_OPTIONS_BY_PROVIDER["openai-api"];
 
   async function handleSubmit(values: EditFormValues) {
     // バリデーション
@@ -131,6 +195,7 @@ function EditCommandForm({
       });
       return;
     }
+    if (!(await validateApiKey(values.provider))) return;
 
     const updated: CustomCommand = {
       ...command,
@@ -138,7 +203,8 @@ function EditCommandForm({
       systemPrompt: values.systemPrompt.trim(),
       model: values.model || undefined,
       icon: values.icon || undefined,
-      provider: values.provider || undefined,
+      provider: values.provider,
+      reasoningEffort: values.provider === "codex-cli" ? (values.reasoningEffort || undefined) : undefined,
     };
 
     await onUpdate(updated);
@@ -175,12 +241,14 @@ function EditCommandForm({
         placeholder="システムプロンプトを入力..."
         defaultValue={command.systemPrompt}
       />
+      <Form.Separator />
       <Form.Dropdown
         id="provider"
         title="Provider"
-        defaultValue={command.provider ?? ""}
+        defaultValue={command.provider ?? "openai-api"}
+        onChange={setSelectedProvider}
       >
-        {PROVIDER_OPTIONS.map((opt) => (
+        {providerOptions.map((opt) => (
           <Form.Dropdown.Item
             key={opt.value}
             title={opt.title}
@@ -193,7 +261,7 @@ function EditCommandForm({
         title="Model"
         defaultValue={command.model ?? ""}
       >
-        {MODEL_OPTIONS.map((opt) => (
+        {modelOptions.map((opt) => (
           <Form.Dropdown.Item
             key={opt.value}
             title={opt.title}
@@ -201,6 +269,22 @@ function EditCommandForm({
           />
         ))}
       </Form.Dropdown>
+      {selectedProvider === "codex-cli" && (
+        <Form.Dropdown
+          id="reasoningEffort"
+          title="Reasoning Effort"
+          defaultValue={command.reasoningEffort ?? ""}
+        >
+          {REASONING_EFFORT_OPTIONS.map((opt) => (
+            <Form.Dropdown.Item
+              key={opt.value}
+              title={opt.title}
+              value={opt.value}
+            />
+          ))}
+        </Form.Dropdown>
+      )}
+      <Form.Separator />
       <Form.Dropdown id="icon" title="Icon" defaultValue={command.icon ?? ""}>
         <Form.Dropdown.Item title="Default (Bubble)" value="" icon={Icon.Bubble} />
         {ICON_OPTIONS.map((opt) => (
@@ -223,6 +307,10 @@ function CreateCommandForm({
   onAdd: (command: CustomCommand) => Promise<void>;
 }) {
   const { pop } = useNavigation();
+  const [selectedProvider, setSelectedProvider] = useState("openai-api");
+  const providerOptions = getProviderOptions();
+
+  const modelOptions = MODEL_OPTIONS_BY_PROVIDER[selectedProvider] ?? MODEL_OPTIONS_BY_PROVIDER["openai-api"];
 
   async function handleSubmit(values: EditFormValues) {
     if (!values.name.trim()) {
@@ -232,6 +320,7 @@ function CreateCommandForm({
       });
       return;
     }
+    if (!(await validateApiKey(values.provider))) return;
 
     const command: CustomCommand = {
       id: randomUUID(),
@@ -239,7 +328,8 @@ function CreateCommandForm({
       systemPrompt: values.systemPrompt?.trim() ?? "",
       model: values.model || undefined,
       icon: values.icon || undefined,
-      provider: values.provider || undefined,
+      provider: values.provider,
+      reasoningEffort: values.provider === "codex-cli" ? (values.reasoningEffort || undefined) : undefined,
     };
 
     await onAdd(command);
@@ -272,8 +362,14 @@ function CreateCommandForm({
         title="System Prompt"
         placeholder="システムプロンプトを入力..."
       />
-      <Form.Dropdown id="provider" title="Provider" defaultValue="">
-        {PROVIDER_OPTIONS.map((opt) => (
+      <Form.Separator />
+      <Form.Dropdown
+        id="provider"
+        title="Provider"
+        defaultValue="openai-api"
+        onChange={setSelectedProvider}
+      >
+        {providerOptions.map((opt) => (
           <Form.Dropdown.Item
             key={opt.value}
             title={opt.title}
@@ -282,7 +378,7 @@ function CreateCommandForm({
         ))}
       </Form.Dropdown>
       <Form.Dropdown id="model" title="Model" defaultValue="">
-        {MODEL_OPTIONS.map((opt) => (
+        {modelOptions.map((opt) => (
           <Form.Dropdown.Item
             key={opt.value}
             title={opt.title}
@@ -290,6 +386,18 @@ function CreateCommandForm({
           />
         ))}
       </Form.Dropdown>
+      {selectedProvider === "codex-cli" && (
+        <Form.Dropdown id="reasoningEffort" title="Reasoning Effort" defaultValue="">
+          {REASONING_EFFORT_OPTIONS.map((opt) => (
+            <Form.Dropdown.Item
+              key={opt.value}
+              title={opt.title}
+              value={opt.value}
+            />
+          ))}
+        </Form.Dropdown>
+      )}
+      <Form.Separator />
       <Form.Dropdown id="icon" title="Icon" defaultValue="">
         <Form.Dropdown.Item title="Default (Bubble)" value="" icon={Icon.Bubble} />
         {ICON_OPTIONS.map((opt) => (

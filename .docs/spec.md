@@ -31,7 +31,7 @@ Raycast 上で複数の AI プロバイダーを利用したチャットイン�
 | FR-015 | カスタムプロンプト一覧管理 | カスタムプロンプトの一覧表示・編集・削除・会話開始を行う | Should | o |
 | FR-016 | カスタムプロンプト切替 | チャット画面の SearchBar 横ドロップダウンでカスタムプロンプトを切り替える | Should | o |
 | FR-017 | カスタムプロンプト参照 | Thread に customCommandId を保持し、どのカスタムプロンプトで会話しているか参照する | Should | o |
-| FR-018 | モデル・プロバイダー優先順位制御 | CustomPrompt > Preferences の優先順位でモデルとプロバイダーを決定する | Should | o |
+| FR-018 | モデル・プロバイダー設定一元化 | モデル・プロバイダーをカスタムプロンプト設定で一元管理する（デフォルトプロンプトがグローバル設定） | Should | o |
 | FR-019 | マルチプロバイダー対応 | OpenAI API / Codex CLI / Claude Code CLI の3プロバイダーを切り替えて使用できる | Should | o |
 
 **優先度**: Must（必須）/ Should（推奨）/ Could（任意）
@@ -155,14 +155,16 @@ ask-ai.tsx（メインコマンド）
   │     ├── CRUD: save / load / add / update / delete / get
   │     └── デフォルトプロンプト: 簡潔・正確な回答を促すシステムプロンプト
   │
-  ├── create-ai-prompt.tsx（カスタムプロンプト作成コマンド）
-  │     └── Form: Name, System Prompt, Provider, Model, Icon
-  │
-  └── ai-prompts.tsx（カスタムプロンプト一覧コマンド）
+  └── ai-prompts.tsx（モデル & プロンプト管理コマンド）
         ├── List で全カスタムプロンプトを表示
         │     └── accessories: プロバイダータグ + モデル名
         ├── ActionPanel: Edit / Start Conversation / Create / Delete
-        └── 末尾に「新規プロンプトを作成...」固定アイテム
+        ├── 末尾に「新規プロンプトを作成...」固定アイテム
+        ├── EditCommandForm: Name, System Prompt, Provider, Model, Reasoning Effort, Icon
+        │     ├── Provider 選択に応じてモデル一覧が動的に切替
+        │     ├── Reasoning Effort は Codex CLI 選択時のみ表示
+        │     └── OpenAI API キー未設定時はタイトルで警告 + Submit 時バリデーション
+        └── CreateCommandForm: 同上（新規作成用）
 ```
 
 ### UI フロー
@@ -281,20 +283,16 @@ ask-ai.tsx（メインコマンド）
 | id | string | プロンプト固有ID（UUID v4） |
 | name | string | プロンプト名（表示名） |
 | systemPrompt | string | システムプロンプト |
-| model? | string | 使用するモデル（任意。未指定時はプロバイダー別 Preferences を使用） |
+| model? | string | 使用するモデル（任意。未指定時はプロバイダーのデフォルトモデル） |
 | icon? | string | Raycast Icon 名（任意。未指定時は Bubble） |
-| provider? | string | プロバイダー（任意。未指定時は Preferences.provider を使用） |
+| provider? | string | プロバイダー（未指定時は "openai-api"） |
+| reasoningEffort? | string | Codex CLI 用の推論レベル（low / medium / high） |
 
 #### Preferences（TypeScript 型定義）
 
 | フィールド | 型 | 説明 |
 |----------|------|------|
-| provider | string | AI プロバイダー（"openai-api" / "codex-cli" / "claude-cli"） |
 | apiKey | string | OpenAI API キー |
-| model | string | OpenAI API 使用時のモデル |
-| codexModel | string | Codex CLI 使用時のモデル |
-| codexReasoningEffort | string | Codex CLI の推論レベル |
-| claudeModel | string | Claude Code CLI 使用時のモデル |
 
 ### LocalStorage キー設計
 
@@ -308,16 +306,13 @@ ask-ai.tsx（メインコマンド）
 
 ### Preferences 設定
 
-package.json の `preferences` セクションで宣言する。プロバイダー別にグルーピングして表示順を整理。
+package.json の `preferences` セクションで宣言する。モデル・プロバイダー設定はプロンプト管理（CustomCommand）に一元化。
 
-| name | type | title | 説明 | 対象プロバイダー |
-|------|------|-------|------|-----------------|
-| provider | dropdown | Provider | AI プロバイダーを選択（初期値: openai-api） | 共通 |
-| apiKey | password | OpenAI API Key | OpenAI API 使用時のみ必要 | OpenAI API |
-| model | dropdown | OpenAI Model | OpenAI API 使用時のモデル（初期値: gpt-4.1-nano） | OpenAI API |
-| codexModel | dropdown | Codex CLI Model | Codex CLI のモデル（未指定時は CLI ローカル設定） | Codex CLI |
-| codexReasoningEffort | dropdown | Codex CLI Reasoning Effort | Codex CLI の推論レベル（未指定時は CLI ローカル設定） | Codex CLI |
-| claudeModel | dropdown | Claude CLI Model | Claude Code CLI のモデル（未指定時は CLI ローカル設定） | Claude CLI |
+| name | type | title | 説明 |
+|------|------|-------|------|
+| apiKey | password | OpenAI API Key | OpenAI API 使用時のみ必要 |
+
+**Note**: モデル・プロバイダーの選択はカスタムプロンプト設定で管理する。「デフォルト」プロンプトがグローバル設定の役割を果たす。
 
 
 ## 6. 制約

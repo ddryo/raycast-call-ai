@@ -30,6 +30,7 @@ export interface CustomCommand {
   model?: string;
   icon?: string; // Raycast Icon 名
   provider?: string; // 未指定時は Preferences.provider を使用
+  reasoningEffort?: string; // Codex CLI 用の推論レベル（low / medium / high）
   isDefault?: boolean; // デフォルトプロンプト（削除不可・フォールバック用）
 }
 
@@ -48,12 +49,7 @@ export interface ApiError {
   originalError?: unknown;
 }
 
-// Preferences
+// Preferences（拡張機能設定は API キーのみ。モデル・プロバイダーはプロンプト設定で管理）
 export interface Preferences {
   apiKey: string;
-  model: string;
-  claudeModel: string;
-  codexModel: string;
-  codexReasoningEffort: string;
-  provider: string;
 }

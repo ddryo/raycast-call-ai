@@ -38,34 +38,12 @@
     },
     {
       "name": "ai-prompts",
-      "title": "Manage Prompts",
-      "description": "AI カスタムプロンプトの一覧管理",
+      "title": "Manage Models & Prompts",
+      "description": "AI モデル・プロンプトの設定管理",
       "mode": "view"
     }
   ],
   "preferences": [
-    {
-      "name": "provider",
-      "type": "dropdown",
-      "required": false,
-      "title": "Provider",
-      "description": "AI プロバイダーを選択",
-      "default": "openai-api",
-      "data": [
-        {
-          "title": "OpenAI API",
-          "value": "openai-api"
-        },
-        {
-          "title": "Codex CLI",
-          "value": "codex-cli"
-        },
-        {
-          "title": "Claude Code CLI",
-          "value": "claude-cli"
-        }
-      ]
-    },
     {
       "name": "apiKey",
       "type": "password",
@@ -73,122 +51,6 @@
       "title": "OpenAI API Key",
       "description": "OpenAI API 使用時のみ必要",
       "placeholder": "sk-..."
-    },
-    {
-      "name": "model",
-      "type": "dropdown",
-      "required": false,
-      "title": "OpenAI Model",
-      "description": "OpenAI API 使用時のモデル",
-      "default": "gpt-4.1-nano",
-      "data": [
-        {
-          "title": "GPT-4.1 nano",
-          "value": "gpt-4.1-nano"
-        },
-        {
-          "title": "GPT-4.1 mini",
-          "value": "gpt-4.1-mini"
-        },
-        {
-          "title": "GPT-4.1",
-          "value": "gpt-4.1"
-        },
-        {
-          "title": "GPT-5 nano",
-          "value": "gpt-5-nano"
-        },
-        {
-          "title": "GPT-5 mini",
-          "value": "gpt-5-mini"
-        },
-        {
-          "title": "GPT-5.2",
-          "value": "gpt-5.2"
-        }
-      ]
-    },
-    {
-      "name": "codexModel",
-      "type": "dropdown",
-      "required": false,
-      "title": "Codex CLI Model",
-      "description": "Codex CLI 使用時のモデル。",
-      "default": "",
-      "data": [
-        {
-          "title": "CLI のローカル設定を使用",
-          "value": ""
-        },
-        {
-          "title": "GPT-5.3 Codex",
-          "value": "gpt-5.3-codex"
-        },
-        {
-          "title": "GPT-5.2 Codex",
-          "value": "gpt-5.2-codex"
-        },
-        {
-          "title": "GPT-5.2",
-          "value": "gpt-5.2"
-        },
-        {
-          "title": "GPT-5.1 Codex Mini",
-          "value": "gpt-5.1-codex-mini"
-        }
-      ]
-    },
-    {
-      "name": "codexReasoningEffort",
-      "type": "dropdown",
-      "required": false,
-      "title": "Codex CLI Reasoning Effort",
-      "description": "Codex CLI 使用時の推論レベル。",
-      "default": "",
-      "data": [
-        {
-          "title": "CLI のローカル設定を使用",
-          "value": ""
-        },
-        {
-          "title": "Low",
-          "value": "low"
-        },
-        {
-          "title": "Medium",
-          "value": "medium"
-        },
-        {
-          "title": "High",
-          "value": "high"
-        }
-      ]
-    },
-    {
-      "name": "claudeModel",
-      "type": "dropdown",
-      "required": false,
-      "title": "Claude CLI Model",
-      "description": "Claude Code CLI 使用時のモデル。",
-      "default": "",
-      "data": [
-        {
-          "title": "CLI のローカル設定を使用",
-          "value": ""
-        },
-        {
-          "title": "Opus",
-          "value": "opus"
-        },
-        {
-          "title": "Sonnet",
-          "value": "sonnet"
-        },
-        {
-          "title": "Haiku",
-          "value": "haiku"
-        }
-      ]
     }
   ],
   "dependencies": {

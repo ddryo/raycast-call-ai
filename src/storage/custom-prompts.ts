@@ -13,12 +13,26 @@ export async function ensureDefaultPrompt(): Promise<string> {
   const existingId =
     await LocalStorage.getItem<string>(DEFAULT_PROMPT_KEY);
   if (existingId) {
-    // 既存のデフォルトプロンプトに isDefault フラグがなければ追加（マイグレーション）
+    // マイグレーション: isDefault フラグ & provider/model のデフォルト値を補完
     const prompts = await loadCustomPrompts();
     const defaultPrompt = prompts.find((p) => p.id === existingId);
-    if (defaultPrompt && !defaultPrompt.isDefault) {
-      defaultPrompt.isDefault = true;
-      await saveCustomPrompts(prompts);
+    if (defaultPrompt) {
+      let needsSave = false;
+      if (!defaultPrompt.isDefault) {
+        defaultPrompt.isDefault = true;
+        needsSave = true;
+      }
+      if (!defaultPrompt.provider) {
+        defaultPrompt.provider = "openai-api";
+        needsSave = true;
+      }
+      if (!defaultPrompt.model) {
+        defaultPrompt.model = "gpt-4.1-nano";
+        needsSave = true;
+      }
+      if (needsSave) {
+        await saveCustomPrompts(prompts);
+      }
     }
     return existingId;
   }
@@ -31,6 +45,8 @@ export async function ensureDefaultPrompt(): Promise<string> {
     systemPrompt:
       "簡潔に回答してください。正確さを最優先し、不確かな情報や推測に基づく回答は避けてください。わからないこと・曖昧なことがあれば、正直にその旨を伝えてください。",
     icon: "Bubble",
+    provider: "openai-api",
+    model: "gpt-4.1-nano",
     isDefault: true,
   };
 

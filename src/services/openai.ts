@@ -138,7 +138,6 @@ export async function createChatCompletion(
   onDelta?: (textSoFar: string) => void,
 ): Promise<ChatCompletionResult> {
   const client = getClient();
-  const prefs = getPreferenceValues<Preferences>();
 
   // system メッセージを instructions として分離
   const systemMessages = messages.filter((m) => m.role === "system");
@@ -148,7 +147,7 @@ export async function createChatCompletion(
       ? systemMessages.map((m) => m.content).join("\n")
       : undefined;
 
-  const selectedModel = model ?? prefs.model;
+  const selectedModel = model ?? "gpt-4.1-nano";
   const isReasoning = REASONING_MODELS.has(selectedModel);
 
   const stream = await client.responses.create({

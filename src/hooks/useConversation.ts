@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { showToast, Toast, getPreferenceValues } from "@raycast/api";
-import { Message, Preferences, Thread } from "../types";
+import { showToast, Toast } from "@raycast/api";
+import { Message, Thread } from "../types";
 import { trimMessagesForContext } from "../services/openai";
 import { sendCompletion, classifyProviderError } from "../services/provider";
 import {
@@ -195,9 +195,6 @@ export function useConversation(options?: {
       }
     }
 
-    // トークン上限チェック: 超過時は古いメッセージを切り捨て
-    const prefs = getPreferenceValues<Preferences>();
-
     // カスタムコマンドの取得（Thread に customCommandId がある場合、なければデフォルトにフォールバック）
     const currentThread = threadsRef.current.find((t) => t.id === threadId);
     const customCmdId = currentThread?.customCommandId;
@@ -208,27 +205,17 @@ export function useConversation(options?: {
     // システムプロンプトの決定: カスタムコマンドから取得（未設定なら注入しない）
     const systemPrompt = customCmd?.systemPrompt?.trim() || "";
 
-    // プロバイダーの決定: CustomCommand.provider > Preferences.provider > "openai-api"
-    const effectiveProvider =
-      customCmd?.provider || prefs.provider || "openai-api";
+    // プロバイダーの決定: CustomCommand から取得（未設定なら "openai-api"）
+    const effectiveProvider = customCmd?.provider || "openai-api";
 
     try {
-      // モデルの決定:
-      // - CustomCommand にモデル指定あり → それを使う（プロバイダー問わず）
-      // - OpenAI API → Preferences.model を使う
-      // - CLI プロバイダー → プロバイダーごとの Preferences があればそれを使う、なければ CLI のローカル設定に任せる
-      const effectiveModel = customCmd?.model
-        ? customCmd.model
-        : effectiveProvider === "openai-api"
-          ? prefs.model
-          : effectiveProvider === "claude-cli"
-            ? prefs.claudeModel || undefined
-            : prefs.codexModel || undefined;
+      // モデルの決定: CustomCommand から取得（未設定なら undefined = プロバイダーのデフォルトに委任）
+      const effectiveModel = customCmd?.model || undefined;
 
-      // Codex CLI 用の推論レベル（Preferences で明示指定があれば渡す）
+      // Codex CLI 用の推論レベル: CustomCommand から取得
       const effectiveReasoningEffort =
-        effectiveProvider === "codex-cli" && prefs.codexReasoningEffort
-          ? prefs.codexReasoningEffort
+        effectiveProvider === "codex-cli"
+          ? customCmd?.reasoningEffort || undefined
           : undefined;
 
       // システムプロンプトの注入（API送信時のみ、LocalStorageには保存しない）
@@ -247,7 +234,7 @@ export function useConversation(options?: {
 
       const { trimmed, wasTrimmed, exceedsLimit } = trimMessagesForContext(
         messagesForApi,
-        effectiveModel ?? prefs.model,
+        effectiveModel ?? "gpt-4.1-nano",
       );
 
       if (exceedsLimit) {

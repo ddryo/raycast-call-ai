@@ -8,18 +8,8 @@
 /* eslint-disable @typescript-eslint/ban-types */
 
 type ExtensionPreferences = {
-  /** Provider - AI プロバイダーを選択 */
-  "provider": "openai-api" | "codex-cli" | "claude-cli",
   /** OpenAI API Key - OpenAI API 使用時のみ必要 */
-  "apiKey"?: string,
-  /** OpenAI Model - OpenAI API 使用時のモデル */
-  "model": "gpt-4.1-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-5-nano" | "gpt-5-mini" | "gpt-5.2",
-  /** Codex CLI Model - Codex CLI 使用時のモデル。 */
-  "codexModel": "" | "gpt-5.3-codex" | "gpt-5.2-codex" | "gpt-5.2" | "gpt-5.1-codex-mini",
-  /** Codex CLI Reasoning Effort - Codex CLI 使用時の推論レベル。 */
-  "codexReasoningEffort": "" | "low" | "medium" | "high",
-  /** Claude CLI Model - Claude Code CLI 使用時のモデル。 */
-  "claudeModel": "" | "opus" | "sonnet" | "haiku"
+  "apiKey"?: string
 }
 
 /** Preferences accessible in all the extension's commands */
