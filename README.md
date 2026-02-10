@@ -1,4 +1,4 @@
-# Ask AI - Raycast Extension
+# Call AI - Raycast Extension
 
 Raycast 上で複数の AI プロバイダーを使えるチャット拡張機能。
 
@@ -16,7 +16,7 @@ Raycast 上で複数の AI プロバイダーを使えるチャット拡張機�
 
 ```bash
 git clone <this-repo>
-cd raycast-test
+cd raycast-call-ai
 npm install
 npm run dev
 ```
@@ -35,7 +35,7 @@ npm run dev
    ```bash
    codex login
    ```
-3. Raycast の拡張機能設定で **Provider** を「Codex CLI」に変更
+3. プリセット設定で **Provider** を「Codex CLI」に変更
 
 #### Claude Code CLI
 
@@ -47,16 +47,15 @@ npm run dev
    - 対話式プロンプトに従い、Claude のサブスクリプション認証を行う
    - トークンは **macOS Keychain** に暗号化保存される
    - Claude Pro/Max プランが必要（追加の API 課金は発生しない）
-3. Raycast の拡張機能設定で **Provider** を「Claude Code CLI」に変更
+3. プリセット設定で **Provider** を「Claude Code CLI」に変更
 
 ### 3. Raycast Preferences
 
 | 設定項目 | 説明 | 必須 |
 |----------|------|------|
-| Provider | AI プロバイダーの選択 | - |
 | OpenAI API Key | OpenAI API キー（OpenAI API 使用時） | OpenAI API 時のみ |
-| Model | 使用するモデル | - |
-| Reasoning Effort | 推論モデルの推論レベル | - |
+
+> Provider・Model・Reasoning Effort はプリセット（Manage Presets）で個別に設定します。
 
 ## 認証トークンの解除
 
@@ -80,9 +79,11 @@ security delete-generic-password -s "claude-code"
 
 - AI チャット（ストリーミング対応）
 - 複数会話スレッド管理
-- カスタムプロンプト（システムプロンプト + モデル + プロバイダーの組み合わせ）
+- プリセット（システムプロンプト + モデル + プロバイダーの組み合わせ）
 - 会話履歴の永続化
 - Web 検索（OpenAI API 使用時）
+- 選択テキスト自動送信（プリセットの設定で有効化）
+- Quicklink 作成（プリセットへの直接アクセス）
 
 ## コマンド一覧
 
@@ -90,8 +91,8 @@ security delete-generic-password -s "claude-code"
 |----------|------|
 | **Chat History** | 会話履歴を表示し、既存スレッドで AI とチャット |
 | **New Chat** | 新しいスレッドを作成して AI とチャットを開始 |
-| **Use Prompt** | カスタムプロンプトを選んで会話を開始（引数でプロンプト名を直接指定可） |
-| **Manage Prompts** | カスタムプロンプトの作成・編集・削除 |
+| **Use Preset** | プリセットを選んで会話を開始（引数でプリセット名を直接指定可） |
+| **Manage Presets** | プリセットの作成・編集・削除・並べ替え |
 
 ## アクション（ショートカットキー）
 
@@ -105,6 +106,7 @@ security delete-generic-password -s "claude-code"
 | New Conversation | `⌘N` | 新規スレッドを作成 |
 | Clear Conversation | `⌘⇧⌫` | 現在のスレッドの会話をクリア |
 | Delete Conversation | `⌃X` | スレッドを削除 |
+| Delete All Conversations | `⌃⇧X` | 全スレッドを削除（2件以上時のみ） |
 
 #### Multiline Input フォーム
 
@@ -112,26 +114,29 @@ security delete-generic-password -s "claude-code"
 |---|---|---|
 | Send Message | `⌘↵` | 入力テキストを送信 |
 
-### Use Prompt
+### Use Preset
 
 | アクション | ショートカット | 説明 |
 |---|---|---|
-| Start Conversation | `↵` | 選択したプロンプトで会話を開始 |
-| Create Quicklink | `⌘⇧L` | 選択プロンプトへの Quicklink を作成 |
-| Manage Prompts | − | Manage Prompts コマンドを起動 |
+| Start Conversation | `↵` | 選択したプリセットで会話を開始 |
+| Create Quicklink | `⌘⇧L` | 選択プリセットへの Quicklink を作成 |
+| Manage Prompts | − | Manage Presets コマンドを起動 |
 
-### Manage Prompts
+### Manage Presets
 
 | アクション | ショートカット | 説明 |
 |---|---|---|
 | Edit Prompt | `↵` | 編集フォームを開く |
-| Start Conversation | `⌘↵` | そのプロンプトで会話を開始 |
+| Start Conversation | `⌘↵` | そのプリセットで会話を開始 |
 | Create Quicklink | `⌘⇧L` | Quicklink を作成 |
 | Create Prompt | `⌘N` | 新規作成フォームを開く |
-| Delete Prompt | `⌃X` | プロンプトを削除（デフォルトプロンプト以外） |
+| Move Up | `⌘⇧↑` | プリセットを上に移動 |
+| Move Down | `⌘⇧↓` | プリセットを下に移動 |
+| Delete Prompt | `⌃X` | プリセットを削除（デフォルトプリセット以外） |
 
 #### 編集 / 作成フォーム
 
 | アクション | ショートカット | 説明 |
 |---|---|---|
 | Update Prompt / Create Prompt | `⌘↵` | フォーム内容を保存 |
+| Create Quicklink | `⌘⇧L` | Quicklink を作成（編集フォームのみ） |

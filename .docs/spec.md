@@ -3,7 +3,7 @@
 ## 1. 概要
 
 ### 目的
-Raycast 上で複数の AI プロバイダーを利用したチャットインターフェースを提供する拡張機能「call-ai」を開発する。
+Raycast 上で複数の AI プロバイダーを利用したチャットインターフェースを提供する拡張機能「Call AI」を開発する。
 ランチャーから離れることなく AI との対話を完結させ、日常的な質問・作業支援を効率化する。
 
 ### 対象ユーザー
@@ -27,11 +27,11 @@ Raycast 上で複数の AI プロバイダーを利用したチャットイン�
 | FR-011 | スレッド一覧 | 保存済みスレッドをリスト表示し、選択して会話を再開する | Should | o |
 | FR-012 | 履歴上限管理 | トークン超過時に古いメッセージを切り捨てて送信する | Could | o |
 | FR-013 | デフォルトプロンプト | 初回起動時にデフォルトのカスタムプロンプトを自動生成する | Should | o |
-| FR-014 | カスタムプロンプト作成 | Form で名前・システムプロンプト・プロバイダー・モデル・アイコンを指定してカスタムプロンプトを作成する | Should | o |
-| FR-015 | カスタムプロンプト一覧管理 | カスタムプロンプトの一覧表示・編集・削除・会話開始を行う | Should | o |
-| FR-016 | カスタムプロンプト切替 | チャット画面の SearchBar 横ドロップダウンでカスタムプロンプトを切り替える | Should | o |
-| FR-017 | カスタムプロンプト参照 | Thread に customCommandId を保持し、どのカスタムプロンプトで会話しているか参照する | Should | o |
-| FR-018 | モデル・プロバイダー設定一元化 | モデル・プロバイダーをカスタムプロンプト設定で一元管理する（デフォルトプロンプトがグローバル設定） | Should | o |
+| FR-014 | プリセット作成 | Form で名前・システムプロンプト・プロバイダー・モデル・アイコンを指定してプリセットを作成する | Should | o |
+| FR-015 | プリセット一覧管理 | プリセットの一覧表示・編集・削除・並べ替え・会話開始を行う | Should | o |
+| FR-016 | プリセット切替 | チャット画面の SearchBar 横ドロップダウンでプリセットを切り替える | Should | o |
+| FR-017 | プリセット参照 | Thread に customCommandId を保持し、どのプリセットで会話しているか参照する | Should | o |
+| FR-018 | モデル・プロバイダー設定一元化 | モデル・プロバイダーをプリセット設定で一元管理する（デフォルトプロンプトがグローバル設定） | Should | o |
 | FR-019 | マルチプロバイダー対応 | OpenAI API / Codex CLI / Claude Code CLI の3プロバイダーを切り替えて使用できる | Should | o |
 
 **優先度**: Must（必須）/ Should（推奨）/ Could（任意）
@@ -42,7 +42,7 @@ Raycast 上で複数の AI プロバイダーを利用したチャットイン�
 |----------|----------|----------|------|
 | Phase 1 | 単一会話での送受信・表示・保存 | FR-001 ~ FR-009 | 完了 |
 | Phase 2 | 複数会話スレッド管理 | FR-010 ~ FR-012 | 完了 |
-| Phase 3 | システムプロンプト & カスタムプロンプト | FR-013 ~ FR-018 | 完了 |
+| Phase 3 | システムプロンプト & プリセット | FR-013 ~ FR-018 | 完了 |
 | Phase 4 | マルチプロバイダー対応 | FR-019 | 完了 |
 
 
@@ -61,6 +61,15 @@ Raycast 上で複数の AI プロバイダーを利用したチャットイン�
 
 ## 4. アーキテクチャ
 
+### コマンド定義（package.json）
+
+| コマンド名 | タイトル | 説明 |
+|-----------|---------|------|
+| call-ai | Chat History | メインコマンド。スレッド一覧 + チャット画面 |
+| call-ai-new | New Chat | 新規会話を作成して開始するラッパー |
+| use-prompt | Use Preset | プリセット選択 → 会話開始（引数 `promptName` でプロンプト名の直接指定可） |
+| ai-prompts | Manage Presets | プリセット一覧管理（作成・編集・削除・並べ替え） |
+
 ### ディレクトリ構成
 
 ```
@@ -68,20 +77,20 @@ call-ai/
 ├── src/
 │   ├── call-ai.tsx              # メインコマンド（List + Detail UI）
 │   ├── call-ai-new.tsx          # 新規会話で開始するラッパー
-│   ├── create-ai-prompt.tsx    # カスタムプロンプト作成フォーム
-│   ├── ai-prompts.tsx          # カスタムプロンプト一覧管理
+│   ├── use-prompt.tsx           # プリセット選択 → 会話開始（引数でプロンプト名直接指定可）
+│   ├── ai-prompts.tsx           # プリセット一覧管理（作成・編集フォームもインライン）
 │   ├── services/
-│   │   ├── provider.ts         # プロバイダー抽象化層（ルーティング + エラー分類統合）
-│   │   ├── openai.ts           # OpenAI API 通信層 + トークン推定・履歴トリミング
-│   │   └── cli.ts              # CLI プロバイダー通信層（Codex CLI / Claude Code CLI）
+│   │   ├── provider.ts          # プロバイダー抽象化層（ルーティング + エラー分類統合）
+│   │   ├── openai.ts            # OpenAI API 通信層 + トークン推定・履歴トリミング
+│   │   └── cli.ts               # CLI プロバイダー通信層（Codex CLI / Claude Code CLI）
 │   ├── storage/
-│   │   ├── conversation.ts     # LocalStorage による永続化層（メッセージ + スレッド管理）
-│   │   └── custom-prompts.ts   # カスタムプロンプトの CRUD（LocalStorage）
+│   │   ├── conversation.ts      # LocalStorage による永続化層（メッセージ + スレッド管理）
+│   │   └── custom-prompts.ts    # プリセット CRUD（LocalStorage）
 │   ├── hooks/
-│   │   ├── useConversation.ts  # 会話・スレッド状態管理カスタムフック
-│   │   └── useCustomCommands.ts # カスタムプロンプト状態管理フック
+│   │   ├── useConversation.ts   # 会話・スレッド状態管理カスタムフック
+│   │   └── useCustomCommands.ts # プリセット状態管理フック
 │   └── types/
-│       └── index.ts            # 型定義（Provider, Message, Thread, CustomCommand, ApiError, Preferences）
+│       └── index.ts             # 型定義（Provider, Message, Thread, CustomCommand, ApiError, Preferences）
 ├── package.json
 └── tsconfig.json
 ```
@@ -89,27 +98,28 @@ call-ai/
 ### コンポーネント構成
 
 ```
-call-ai.tsx（メインコマンド）
+call-ai.tsx（メインコマンド: Chat History）
   ├── CallAI(props: LaunchProps)  … デフォルトエクスポート。スレッド一体型 List + Detail UI
   │     ├── props:
   │     │     ├── startNew?: boolean       … 新規会話で開始するか（call-ai-new 経由）
   │     │     └── launchContext?: { customCommandId?: string }
-  │     │           └── カスタムプロンプト一覧からの起動時に customCommandId を受け取る
+  │     │           └── プリセット一覧からの起動時に customCommandId を受け取る
   │     ├── SearchBar 入力 → handleSend() でメッセージ送信
   │     │     └── isLoading 中は送信をガード（二重送信防止）
   │     ├── List.Dropdown（searchBarAccessory）
-  │     │     └── カスタムプロンプト切替ドロップダウン
+  │     │     └── プリセット切替ドロップダウン（「新規作成」オプション付き）
   │     ├── List（isShowingDetail=true）
   │     │     └── スレッド単位で List.Item を表示（updatedAt 降順）
   │     ├── onSelectionChange → handleSelectionChange()
   │     │     └── フォーカス変更でスレッド切替（selectThread + loadThreadMessages）
   │     └── ActionPanel
-  │           ├── Action "Send Message"            … Enter で送信
-  │           ├── Action.CopyToClipboard "Copy Last Response" (Cmd+Shift+C)
-  │           ├── Action.Push "Multiline Input" (Cmd+L)
-  │           ├── Action "New Conversation" (Cmd+N)
-  │           ├── Action "Clear Conversation" (Cmd+Shift+Backspace)
-  │           └── Action "Delete Conversation" (Ctrl+D, Destructive)
+  │           ├── Action "Send Message"            … ↵ で送信
+  │           ├── Action.CopyToClipboard "Copy Last Response" (⌘⇧C)
+  │           ├── Action.Push "Multiline Input" (⌘L)
+  │           ├── Action "New Conversation" (⌘N)
+  │           ├── Action "Clear Conversation" (⌘⇧⌫)
+  │           ├── Action "Delete Conversation" (⌃X, Destructive)
+  │           └── Action "Delete All Conversations" (⌃⇧X, Destructive, スレッド2件以上時のみ)
   │
   ├── MultiLineForm({ onSend }) … Form.TextArea + SubmitForm アクション
   │
@@ -118,9 +128,9 @@ call-ai.tsx（メインコマンド）
   │     │     1. 二重送信チェック（isLoadingRef）
   │     │     2. ユーザーメッセージ追加 + messageCache 更新
   │     │     3. 初回送信時: スレッドタイトル自動生成（先頭30文字）
-  │     │     4. カスタムプロンプト取得（Thread.customCommandId → getCustomPrompt）
-  │     │     5. プロバイダー決定: CustomPrompt.provider > Preferences.provider
-  │     │     6. モデル決定: CustomPrompt.model > プロバイダー別 Preferences
+  │     │     4. プリセット取得（Thread.customCommandId → getCustomPrompt）
+  │     │     5. プロバイダー決定: CustomPrompt.provider > "openai-api"
+  │     │     6. モデル決定: CustomPrompt.model > プロバイダー別デフォルト
   │     │     7. システムプロンプト注入（API送信時のみ、LocalStorage には保存しない）
   │     │     8. trimMessagesForContext() でトークン上限チェック
   │     │     9. sendCompletion() → ストリーミング逐次 UI 更新（150ms スロットリング）
@@ -150,22 +160,55 @@ call-ai.tsx（メインコマンド）
   │           ├── --model（モデル）, --system-prompt（システムプロンプト）
   │           └── stream_event.content_block_delta でテキスト逐次取得
   │
-  ├── custom-prompts.ts（カスタムプロンプト永続化層）
+  ├── custom-prompts.ts（プリセット永続化層）
   │     ├── ensureDefaultPrompt(): 初回起動時にデフォルトプロンプトを自動生成
+  │     │     └── デフォルト: name="デフォルト", systemPrompt=""（空）, provider="openai-api", model="gpt-4.1-nano", isDefault=true
   │     ├── CRUD: save / load / add / update / delete / get
-  │     └── デフォルトプロンプト: 簡潔・正確な回答を促すシステムプロンプト
+  │     └── reorder: プリセットの並べ替え
   │
-  └── ai-prompts.tsx（モデル & プロンプト管理コマンド）
-        ├── List で全カスタムプロンプトを表示
-        │     └── accessories: プロバイダータグ + モデル名
-        ├── ActionPanel: Edit / Start Conversation / Create / Delete
-        ├── 末尾に「新規プロンプトを作成...」固定アイテム
-        ├── EditCommandForm: Name, System Prompt, Provider, Model, Reasoning Effort, Icon
-        │     ├── Provider 選択に応じてモデル一覧が動的に切替
-        │     ├── Reasoning Effort は Codex CLI 選択時のみ表示
-        │     └── OpenAI API キー未設定時はタイトルで警告 + Submit 時バリデーション
-        └── CreateCommandForm: 同上（新規作成用）
+  ├── ai-prompts.tsx（Manage Presets コマンド）
+  │     ├── List で全プリセットを表示
+  │     │     └── accessories: プロバイダータグ + モデル名
+  │     ├── ActionPanel:
+  │     │     ├── Edit Prompt: ↵ (Push)
+  │     │     ├── Start Conversation: ⌘↵
+  │     │     ├── Create Quicklink: ⌘⇧L
+  │     │     ├── Create Prompt: ⌘N (Push)
+  │     │     ├── Move Up: ⌘⇧↑
+  │     │     ├── Move Down: ⌘⇧↓
+  │     │     └── Delete Prompt: ⌃X (Destructive, デフォルト以外)
+  │     ├── EditCommandForm: Name, System Prompt, Provider, Model, Reasoning Effort, Icon, Use Selected Text
+  │     │     ├── Provider 選択に応じてモデル一覧が動的に切替
+  │     │     ├── Reasoning Effort は Codex CLI 選択時のみ表示
+  │     │     └── OpenAI API キー未設定時はタイトルで警告 + Submit 時バリデーション
+  │     └── CreateCommandForm: 同上（新規作成用）
+  │
+  └── use-prompt.tsx（Use Preset コマンド）
+        ├── プリセット一覧を表示し、選択すると call-ai に customCommandId を渡して起動
+        ├── 引数 promptName でプロンプト名を直接指定可（Quicklink 連携用）
+        └── ActionPanel:
+              ├── Start Conversation: ↵
+              ├── Create Quicklink: ⌘⇧L
+              └── Manage Prompts: (ショートカットなし)
 ```
+
+### モデル一覧
+
+| プロバイダー | モデル | 備考 |
+|-------------|--------|------|
+| OpenAI API | gpt-4.1-nano | デフォルト |
+| OpenAI API | gpt-4.1-mini | |
+| OpenAI API | gpt-4.1 | |
+| OpenAI API | gpt-5-nano | |
+| OpenAI API | gpt-5-mini | |
+| OpenAI API | gpt-5.2 | |
+| Codex CLI | gpt-5.3-codex | |
+| Codex CLI | gpt-5.2-codex | |
+| Codex CLI | gpt-5.2 | |
+| Codex CLI | gpt-5.1-codex-mini | |
+| Claude CLI | opus | |
+| Claude CLI | sonnet | |
+| Claude CLI | haiku | |
 
 ### UI フロー
 
@@ -188,13 +231,9 @@ call-ai.tsx（メインコマンド）
 2. `isLoadingRef` で同期的に二重送信チェック
 3. ユーザーメッセージを `messages` に追加 + `messageCache` 更新 → `isLoading = true`
 4. 初回送信時: スレッドタイトルを先頭30文字で自動生成
-5. カスタムプロンプト取得（Thread.customCommandId → `getCustomPrompt()`）
-6. プロバイダー決定: `CustomPrompt.provider > Preferences.provider > "openai-api"`
-7. モデル決定:
-   - CustomPrompt.model が指定されている → それを使用
-   - OpenAI API → `Preferences.model`
-   - Codex CLI → `Preferences.codexModel`（未指定なら CLI ローカル設定に委任）
-   - Claude CLI → `Preferences.claudeModel`（未指定なら CLI ローカル設定に委任）
+5. プリセット取得（Thread.customCommandId → `getCustomPrompt()`）
+6. プロバイダー決定: `CustomPrompt.provider > "openai-api"`
+7. モデル決定: `CustomPrompt.model > プロバイダー別デフォルト`
 8. システムプロンプト注入（API送信時のみ、LocalStorage には保存しない）
 9. `trimMessagesForContext()` でトークン上限チェック（全プロバイダーで実行、モデルにより上限差）
 10. `sendCompletion()` でプロバイダーに応じた API 呼び出し
@@ -236,21 +275,21 @@ call-ai.tsx（メインコマンド）
 | ストリーミング | `stream: true` |
 | 送信内容 | system → `instructions` に分離、残り → `input` |
 | ツール | `web_search_preview` 有効 |
-| 推論設定 | GPT-5 系: `reasoning.effort = "low"` |
+| 推論設定 | GPT-5 系: `reasoning.effort` 設定 |
 
 #### Codex CLI
 | 項目 | 値 |
 |------|-----|
 | コマンド | `codex exec --skip-git-repo-check` |
-| モデル | `-m {model}`（Preferences 指定時） |
+| モデル | `-m {model}` |
 | システムプロンプト | `-c developer_instructions="{prompt}"` |
-| 推論レベル | `-c model_reasoning_effort="{effort}"`（Preferences 指定時） |
+| 推論レベル | `-c model_reasoning_effort="{effort}"` |
 
 #### Claude Code CLI
 | 項目 | 値 |
 |------|-----|
 | コマンド | `claude -p {prompt} --output-format stream-json --verbose --include-partial-messages` |
-| モデル | `--model {model}`（Preferences 指定時） |
+| モデル | `--model {model}` |
 | システムプロンプト | `--system-prompt {prompt}` |
 | 環境変数 | `CLAUDE_CODE_OAUTH_TOKEN`（シェルから取得してキャッシュ） |
 
@@ -274,7 +313,7 @@ call-ai.tsx（メインコマンド）
 | title | string | スレッド名（初期値「新しい会話」、初回メッセージ送信時に先頭30文字で自動生成） |
 | createdAt | string | 作成日時（ISO 8601） |
 | updatedAt | string | 最終更新日時（ISO 8601） |
-| customCommandId? | string | 紐づくカスタムプロンプトのID |
+| customCommandId? | string | 紐づくプリセットのID |
 
 #### CustomCommand
 
@@ -287,8 +326,10 @@ call-ai.tsx（メインコマンド）
 | icon? | string | Raycast Icon 名（任意。未指定時は Bubble） |
 | provider? | string | プロバイダー（未指定時は "openai-api"） |
 | reasoningEffort? | string | Codex CLI 用の推論レベル（low / medium / high） |
+| isDefault? | boolean | デフォルトプロンプト識別フラグ（true のプロンプトは削除不可） |
+| useSelectedText? | boolean | 起動時に選択テキストを初回メッセージとして自動送信する |
 
-#### Preferences（TypeScript 型定義）
+#### Preferences
 
 | フィールド | 型 | 説明 |
 |----------|------|------|
@@ -301,18 +342,18 @@ call-ai.tsx（メインコマンド）
 | `call-ai:messages:{threadId}` | JSON string（Message[]） | スレッドごとのメッセージ配列 |
 | `call-ai:threads` | JSON string（Thread[]） | スレッド一覧 |
 | `call-ai:current-thread` | string | 現在選択中のスレッドID |
-| `call-ai:custom-commands` | JSON string（CustomCommand[]） | カスタムプロンプト一覧 |
+| `call-ai:custom-commands` | JSON string（CustomCommand[]） | プリセット一覧 |
 | `call-ai:default-command-id` | string | デフォルトプロンプトのID（初期生成済みフラグ） |
 
 ### Preferences 設定
 
-package.json の `preferences` セクションで宣言する。モデル・プロバイダー設定はプロンプト管理（CustomCommand）に一元化。
+package.json の `preferences` セクションで宣言する。モデル・プロバイダー設定はプリセット管理（CustomCommand）に一元化。
 
 | name | type | title | 説明 |
 |------|------|-------|------|
-| apiKey | password | OpenAI API Key | OpenAI API 使用時のみ必要 |
+| apiKey | password | OpenAI API Key | OpenAI API 使用時のみ必要（optional） |
 
-**Note**: モデル・プロバイダーの選択はカスタムプロンプト設定で管理する。「デフォルト」プロンプトがグローバル設定の役割を果たす。
+**Note**: モデル・プロバイダーの選択はプリセット設定で管理する。「デフォルト」プリセットがグローバル設定の役割を果たす。
 
 
 ## 6. 制約
