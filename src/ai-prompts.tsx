@@ -47,7 +47,6 @@ function getProviderOptions(): { title: string; value: string }[] {
 const MODEL_OPTIONS_BY_PROVIDER: Record<string, { title: string; value: string }[]> = {
   "openai-api": [
     { title: "GPT-4.1 nano（デフォルト）", value: "" },
-    { title: "GPT-4.1 nano", value: "gpt-4.1-nano" },
     { title: "GPT-4.1 mini", value: "gpt-4.1-mini" },
     { title: "GPT-4.1", value: "gpt-4.1" },
     { title: "GPT-5 nano", value: "gpt-5-nano" },

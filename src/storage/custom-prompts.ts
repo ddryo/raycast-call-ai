@@ -26,8 +26,13 @@ export async function ensureDefaultPrompt(): Promise<string> {
         defaultPrompt.provider = "openai-api";
         needsSave = true;
       }
-      if (!defaultPrompt.model) {
-        defaultPrompt.model = "gpt-4.1-nano";
+      // ドロップダウンの選択肢に存在しない旧デフォルト値を undefined に統一
+      if (defaultPrompt.model === "gpt-4.1-nano") {
+        defaultPrompt.model = undefined;
+        needsSave = true;
+      }
+      if (defaultPrompt.icon === "Bubble") {
+        defaultPrompt.icon = undefined;
         needsSave = true;
       }
       if (needsSave) {
@@ -43,9 +48,7 @@ export async function ensureDefaultPrompt(): Promise<string> {
     id,
     name: "デフォルト",
     systemPrompt: "",
-    icon: "Bubble",
     provider: "openai-api",
-    model: "gpt-4.1-nano",
     isDefault: true,
   };
 
