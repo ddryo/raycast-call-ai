@@ -21,15 +21,22 @@ import { useCustomCommands } from "./hooks/useCustomCommands";
 import { getCustomPrompt } from "./storage/custom-prompts";
 import { Message } from "./types";
 
-/** 日時を m/d HH:MM 形式でフォーマットする */
-function formatDateTime(isoString: string): string {
+/** 日時を m/d 形式でフォーマットする */
+function formatDate(isoString: string): string {
   const date = new Date(isoString);
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-  return `${m}/${d} ${hh}:${mm}`;
+  return `${date.getMonth() + 1}/${date.getDate()}`;
 }
+
+/** Icon 名から Icon enum の値を取得する */
+function getIconByName(name: string | undefined): Icon {
+  if (!name) return Icon.Bubble;
+  const iconValue = Icon[name as keyof typeof Icon];
+  return (iconValue as Icon) ?? Icon.Bubble;
+}
+
+/** 透明1pxスペーサー画像（余白調整用） */
+/** 透明スペーサー画像（余白調整用・高さはraycast-heightで制御） */
+const SPACER = `![](spacer.png?raycast-height=4)`;
 
 /** 会話メッセージを Markdown テキストに変換する */
 function buildConversationMarkdown(
@@ -42,11 +49,7 @@ function buildConversationMarkdown(
   const reversed = [...messages].reverse();
   const parts = reversed.map((msg) => {
     if (msg.role === "user") {
-      const quoted = msg.content
-        .split("\n")
-        .map((line) => `> ${line}`)
-        .join("\n");
-      return `**You**\n\n${quoted}`;
+      return `\n\n**You**: ${msg.content}`;
     }
     // assistant: 先頭のタグ行（モデル名・Web検索）を抽出して AI ラベルの横に移動
     const tagMatch = msg.content.match(
@@ -55,15 +58,15 @@ function buildConversationMarkdown(
     if (tagMatch) {
       return `**AI** ${tagMatch[1]}\n\n${tagMatch[2]}`;
     }
-    return `**AI**\n\n${msg.content}`;
+    return `\n\n**AI**: ${msg.content}`;
   });
   // 質問(You)→回答(AI)をセットにし、セット間のみ区切り線を入れる
   const lines = parts.reduce((acc, text, i) => {
     if (i === 0) return text;
     const separator =
       reversed[i - 1].role === "user" && reversed[i].role === "assistant"
-        ? "\n\n---\n\n"
-        : "\n\n";
+        ? `\n\n&nbsp;\n\n---\n\n${SPACER}\n\n`
+        : `\n\n↑\n\n`;
     return acc + separator + text;
   }, "");
 
@@ -319,24 +322,18 @@ export default function CallAI(
         )
         .map((thread) => {
           const cachedMessages = messageCache[thread.id];
-          const msgCount = cachedMessages ? cachedMessages.length : 0;
           const lastResponse = getLastAssistantMessage(cachedMessages);
           const promptCmd = thread.customCommandId
             ? customCommands.find((cmd) => cmd.id === thread.customCommandId)
             : undefined;
-          const promptName = promptCmd && !promptCmd.isDefault ? promptCmd.name : undefined;
 
           return (
             <List.Item
               key={thread.id}
               id={thread.id}
               title={thread.title}
-              subtitle={msgCount > 0 ? `${msgCount} messages` : undefined}
-              icon={Icon.Bubble}
-              accessories={[
-                ...(promptName ? [{ tag: { value: promptName, color: Color.Blue } }] : []),
-                { text: formatDateTime(thread.updatedAt) },
-              ]}
+              icon={getIconByName(promptCmd?.icon)}
+              accessories={[{ text: formatDate(thread.updatedAt) }]}
               detail={
                 <List.Item.Detail
                   markdown={buildConversationMarkdown(
