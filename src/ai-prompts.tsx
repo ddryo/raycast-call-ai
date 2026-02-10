@@ -186,9 +186,15 @@ function EditCommandForm({
 }) {
   const { pop } = useNavigation();
   const [selectedProvider, setSelectedProvider] = useState(command.provider ?? "openai-api");
+  const [selectedModel, setSelectedModel] = useState(command.model ?? "");
   const providerOptions = getProviderOptions();
 
   const modelOptions = MODEL_OPTIONS_BY_PROVIDER[selectedProvider] ?? MODEL_OPTIONS_BY_PROVIDER["openai-api"];
+
+  function handleProviderChange(value: string) {
+    setSelectedProvider(value);
+    setSelectedModel("");
+  }
 
   async function handleSubmit(values: EditFormValues) {
     // バリデーション
@@ -262,7 +268,7 @@ function EditCommandForm({
         id="provider"
         title="Provider"
         defaultValue={command.provider ?? "openai-api"}
-        onChange={setSelectedProvider}
+        onChange={handleProviderChange}
         error={
           selectedProvider === "openai-api" && !hasApiKey()
             ? "APIキーが未設定です。拡張機能設定から設定してください。"
@@ -280,7 +286,8 @@ function EditCommandForm({
       <Form.Dropdown
         id="model"
         title="Model"
-        defaultValue={command.model ?? ""}
+        value={selectedModel}
+        onChange={setSelectedModel}
       >
         {modelOptions.map((opt) => (
           <Form.Dropdown.Item
@@ -335,9 +342,15 @@ function CreateCommandForm({
 }) {
   const { pop } = useNavigation();
   const [selectedProvider, setSelectedProvider] = useState("openai-api");
+  const [selectedModel, setSelectedModel] = useState("");
   const providerOptions = getProviderOptions();
 
   const modelOptions = MODEL_OPTIONS_BY_PROVIDER[selectedProvider] ?? MODEL_OPTIONS_BY_PROVIDER["openai-api"];
+
+  function handleProviderChange(value: string) {
+    setSelectedProvider(value);
+    setSelectedModel("");
+  }
 
   async function handleSubmit(values: EditFormValues) {
     if (!values.name.trim()) {
@@ -395,7 +408,7 @@ function CreateCommandForm({
         id="provider"
         title="Provider"
         defaultValue="openai-api"
-        onChange={setSelectedProvider}
+        onChange={handleProviderChange}
         error={
           selectedProvider === "openai-api" && !hasApiKey()
             ? "APIキーが未設定です。拡張機能設定から設定してください。"
@@ -410,7 +423,7 @@ function CreateCommandForm({
           />
         ))}
       </Form.Dropdown>
-      <Form.Dropdown id="model" title="Model" defaultValue="">
+      <Form.Dropdown id="model" title="Model" value={selectedModel} onChange={setSelectedModel}>
         {modelOptions.map((opt) => (
           <Form.Dropdown.Item
             key={opt.value}
