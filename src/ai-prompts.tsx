@@ -221,6 +221,17 @@ function EditCommandForm({
             icon={Icon.Pencil}
             onSubmit={handleSubmit}
           />
+          <Action.CreateQuicklink
+            title="Create Quicklink"
+            shortcut={{ modifiers: ["cmd", "shift"], key: "l" }}
+            quicklink={{
+              name: `Ask AI: ${command.name}`,
+              link: createDeeplink({
+                command: "use-prompt",
+                arguments: { promptName: command.name },
+              }),
+            }}
+          />
         </ActionPanel>
       }
     >
