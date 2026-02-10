@@ -127,7 +127,7 @@ export function trimMessagesForContext(
 
 export interface ChatCompletionResult {
   content: string;
-  usedWebSearch: boolean;
+  usedWebSearch?: boolean;
   model: string;
 }
 

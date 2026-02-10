@@ -276,7 +276,6 @@ function spawnClaudeStreaming(
       const content = resultText || textSoFar;
       resolve({
         content,
-        usedWebSearch: false,
         model: resolvedModel || "claude",
       });
     });
@@ -361,7 +360,6 @@ async function runCodexCli(
 
   return {
     content,
-    usedWebSearch: false,
     model: options?.model ?? CODEX_LOCAL,
   };
 }
