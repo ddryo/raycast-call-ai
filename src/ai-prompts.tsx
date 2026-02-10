@@ -87,8 +87,10 @@ const ICON_OPTIONS: { value: string; icon: Icon }[] = [
   { value: "Emoji", icon: Icon.Emoji },
   { value: "LightBulb", icon: Icon.LightBulb },
   { value: "Bolt", icon: Icon.Bolt },
+  { value: "Box", icon: Icon.Box },
   { value: "Rocket", icon: Icon.Rocket },
-  { value: "Brush", icon: Icon.Brush },
+  { value: "Megaphone", icon: Icon.Megaphone },
+
 
   { value: "Code", icon: Icon.Code },
   { value: "Terminal", icon: Icon.Terminal },
@@ -97,8 +99,16 @@ const ICON_OPTIONS: { value: string; icon: Icon }[] = [
   { value: "Globe", icon: Icon.Globe },
 
   { value: "Pencil", icon: Icon.Pencil },
+  { value: "Brush", icon: Icon.Brush },
   { value: "Book", icon: Icon.Book },
+  { value: "BlankDocument", icon: Icon.BlankDocument },
   { value: "Clipboard", icon: Icon.Clipboard },
+  { value: "Calculator", icon: Icon.Calculator },
+  { value: "BulletPoints", icon: Icon.BulletPoints },
+  { value: "Snippets", icon: Icon.Snippets },
+  { value: "Hashtag", icon: Icon.Hashtag },
+  { value: "TextCursor", icon: Icon.TextCursor },
+
 
   { value: "BarChart", icon: Icon.BarChart },
   { value: "Shield", icon: Icon.Shield },
@@ -106,6 +116,7 @@ const ICON_OPTIONS: { value: string; icon: Icon }[] = [
   { value: "MagnifyingGlass", icon: Icon.MagnifyingGlass },
 
   { value: "Crypto", icon: Icon.Crypto },
+  { value: "Wind", icon: Icon.Wind },
   { value: "Stars", icon: Icon.Stars },
   { value: "Wand", icon: Icon.Wand },
 ];
