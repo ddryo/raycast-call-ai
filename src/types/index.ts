@@ -11,6 +11,8 @@ export interface Message {
   role: MessageRole;
   content: string;
   createdAt: string; // ISO 8601
+  model?: string; // 応答に使用されたモデル名（assistant のみ）
+  usedWebSearch?: boolean; // Web検索が使用されたか（assistant のみ）
 }
 
 // スレッド（Phase 2 で使用）

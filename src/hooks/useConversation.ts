@@ -336,16 +336,15 @@ export function useConversation(options?: {
         flushTimer = null;
       }
 
-      const tags = [
-        `\`${result.model}\``,
-        ...(result.usedWebSearch ? ["`Web検索`"] : []),
-      ].join(" ");
+      // モデル名・Web検索フラグは content に埋め込まず、専用フィールドに保存
       const assistantMessage: Message = {
         id: assistantId,
         threadId,
         role: "assistant",
-        content: tags + "\n\n" + result.content,
+        content: result.content,
         createdAt: assistantCreatedAt,
+        model: result.model,
+        usedWebSearch: result.usedWebSearch || undefined,
       };
 
       const finalMessages = [...nextMessages, assistantMessage];

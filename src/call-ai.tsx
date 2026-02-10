@@ -51,12 +51,13 @@ function buildConversationMarkdown(
     if (msg.role === "user") {
       return `\n\n**You**: ${msg.content}`;
     }
-    // assistant: 先頭のタグ行（モデル名・Web検索）を抽出して AI ラベルの横に移動
-    const tagMatch = msg.content.match(
-      /^(`[^`]+`(?:\s+`[^`]+`)*)\n\n([\s\S]*)$/,
-    );
-    if (tagMatch) {
-      return `**AI** ${tagMatch[1]}\n\n${tagMatch[2]}`;
+    // assistant: model / usedWebSearch フィールドからタグを組み立てて AI ラベルの横に表示
+    const tags = [
+      ...(msg.model ? [`\`${msg.model}\``] : []),
+      ...(msg.usedWebSearch ? ["`Web検索`"] : []),
+    ].join(" ");
+    if (tags) {
+      return `**AI** ${tags}\n\n${msg.content}`;
     }
     return `\n\n**AI**: ${msg.content}`;
   });
