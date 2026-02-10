@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   List,
   ActionPanel,
@@ -14,6 +14,7 @@ import {
   LaunchProps,
   launchCommand,
   LaunchType,
+  getSelectedText,
 } from "@raycast/api";
 import { useConversation } from "./hooks/useConversation";
 import { useCustomCommands } from "./hooks/useCustomCommands";
@@ -152,6 +153,30 @@ export default function AskAI(
   const { commands: customCommands, isLoading: isLoadingCommands } = useCustomCommands();
   const [searchText, setSearchText] = useState("");
   const [focusTarget, setFocusTarget] = useState<string | undefined>(undefined);
+
+  // useSelectedText: 起動時に選択テキストを初回メッセージとして自動送信
+  const didAutoSend = useRef(false);
+  useEffect(() => {
+    if (isLoading || isLoadingCommands || didAutoSend.current || !shouldStartNew || !launchCustomCommandId) return;
+    didAutoSend.current = true;
+    const cmd = customCommands.find((c) => c.id === launchCustomCommandId);
+    if (!cmd?.useSelectedText) return;
+    (async () => {
+      try {
+        const selected = await getSelectedText();
+        if (selected.trim()) {
+          await sendMessage(selected.trim());
+        }
+      } catch {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "テキストが選択されていません",
+          message: "テキストを選択してから再度実行してください",
+        });
+      }
+    })();
+  }, [isLoading, isLoadingCommands]);
+
   /** SearchBar の Enter 押下時にメッセージを送信する */
   async function handleSend() {
     const text = searchText.trim();

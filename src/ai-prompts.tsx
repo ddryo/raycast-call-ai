@@ -150,6 +150,7 @@ interface EditFormValues {
   icon: string;
   provider: string;
   reasoningEffort: string;
+  useSelectedText: boolean;
 }
 
 /** OpenAI API キー未設定時のバリデーション */
@@ -198,6 +199,7 @@ function EditCommandForm({
       icon: values.icon || undefined,
       provider: values.provider,
       reasoningEffort: values.provider === "codex-cli" ? (values.reasoningEffort || undefined) : undefined,
+      useSelectedText: values.useSelectedText || undefined,
     };
 
     await onUpdate(updated);
@@ -289,6 +291,12 @@ function EditCommandForm({
           />
         ))}
       </Form.Dropdown>
+      <Form.Separator />
+      <Form.Checkbox
+        id="useSelectedText"
+        label="選択テキストを初回メッセージとして送信"
+        defaultValue={command.useSelectedText ?? false}
+      />
     </Form>
   );
 }
@@ -323,6 +331,7 @@ function CreateCommandForm({
       icon: values.icon || undefined,
       provider: values.provider,
       reasoningEffort: values.provider === "codex-cli" ? (values.reasoningEffort || undefined) : undefined,
+      useSelectedText: values.useSelectedText || undefined,
     };
 
     await onAdd(command);
@@ -402,6 +411,12 @@ function CreateCommandForm({
           />
         ))}
       </Form.Dropdown>
+      <Form.Separator />
+      <Form.Checkbox
+        id="useSelectedText"
+        label="選択テキストを初回メッセージとして送信"
+        defaultValue={false}
+      />
     </Form>
   );
 }

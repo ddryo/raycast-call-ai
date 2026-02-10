@@ -32,6 +32,7 @@ export interface CustomCommand {
   provider?: string; // 未指定時は Preferences.provider を使用
   reasoningEffort?: string; // Codex CLI 用の推論レベル（low / medium / high）
   isDefault?: boolean; // デフォルトプロンプト（削除不可・フォールバック用）
+  useSelectedText?: boolean; // 起動時に選択テキストを初回メッセージとして自動送信
 }
 
 // API エラー種別
