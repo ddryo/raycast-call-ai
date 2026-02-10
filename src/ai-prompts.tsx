@@ -294,7 +294,7 @@ function EditCommandForm({
       <Form.Separator />
       <Form.Checkbox
         id="useSelectedText"
-        label="選択テキストを初回メッセージとして送信"
+        label="選択テキストがあれば初回メッセージとして送信"
         defaultValue={command.useSelectedText ?? false}
       />
     </Form>
@@ -414,7 +414,7 @@ function CreateCommandForm({
       <Form.Separator />
       <Form.Checkbox
         id="useSelectedText"
-        label="選択テキストを初回メッセージとして送信"
+        label="選択テキストがあれば初回メッセージとして送信"
         defaultValue={false}
       />
     </Form>

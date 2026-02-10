@@ -18,6 +18,7 @@ import {
 } from "@raycast/api";
 import { useConversation } from "./hooks/useConversation";
 import { useCustomCommands } from "./hooks/useCustomCommands";
+import { getCustomPrompt } from "./storage/custom-prompts";
 import { Message } from "./types";
 
 /** 日時を m/d HH:MM 形式でフォーマットする */
@@ -157,25 +158,21 @@ export default function AskAI(
   // useSelectedText: 起動時に選択テキストを初回メッセージとして自動送信
   const didAutoSend = useRef(false);
   useEffect(() => {
-    if (isLoading || isLoadingCommands || didAutoSend.current || !shouldStartNew || !launchCustomCommandId) return;
+    if (isLoading || didAutoSend.current || !shouldStartNew || !launchCustomCommandId) return;
     didAutoSend.current = true;
-    const cmd = customCommands.find((c) => c.id === launchCustomCommandId);
-    if (!cmd?.useSelectedText) return;
     (async () => {
+      const cmd = await getCustomPrompt(launchCustomCommandId);
+      if (!cmd?.useSelectedText) return;
       try {
         const selected = await getSelectedText();
         if (selected.trim()) {
           await sendMessage(selected.trim());
         }
       } catch {
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "テキストが選択されていません",
-          message: "テキストを選択してから再度実行してください",
-        });
+        // テキスト未選択時は何もせず通常のチャットとして開始
       }
     })();
-  }, [isLoading, isLoadingCommands]);
+  }, [isLoading]);
 
   /** SearchBar の Enter 押下時にメッセージを送信する */
   async function handleSend() {
