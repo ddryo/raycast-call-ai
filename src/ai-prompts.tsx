@@ -242,6 +242,11 @@ function EditCommandForm({
         title="Provider"
         defaultValue={command.provider ?? "openai-api"}
         onChange={setSelectedProvider}
+        error={
+          selectedProvider === "openai-api" && !hasApiKey()
+            ? "APIキーが未設定です。拡張機能設定から設定してください。"
+            : undefined
+        }
       >
         {providerOptions.map((opt) => (
           <Form.Dropdown.Item
@@ -370,6 +375,11 @@ function CreateCommandForm({
         title="Provider"
         defaultValue="openai-api"
         onChange={setSelectedProvider}
+        error={
+          selectedProvider === "openai-api" && !hasApiKey()
+            ? "APIキーが未設定です。拡張機能設定から設定してください。"
+            : undefined
+        }
       >
         {providerOptions.map((opt) => (
           <Form.Dropdown.Item
@@ -422,7 +432,7 @@ function CreateCommandForm({
 }
 
 export default function AICommands(props: LaunchProps<{ launchContext?: { action?: string } }>) {
-  const { commands, isLoading, addCommand, updateCommand, removeCommand } =
+  const { commands, isLoading, addCommand, updateCommand, removeCommand, reorderCommand } =
     useCustomCommands();
   const { push } = useNavigation();
   const didAutoNav = useRef(false);
@@ -509,6 +519,18 @@ export default function AICommands(props: LaunchProps<{ launchContext?: { action
                 icon={Icon.PlusCircle}
                 shortcut={{ modifiers: ["cmd"], key: "n" }}
                 target={<CreateCommandForm onAdd={addCommand} />}
+              />
+              <Action
+                title="Move Up"
+                icon={Icon.ArrowUp}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "arrowUp" }}
+                onAction={() => reorderCommand(command.id, "up")}
+              />
+              <Action
+                title="Move Down"
+                icon={Icon.ArrowDown}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "arrowDown" }}
+                onAction={() => reorderCommand(command.id, "down")}
               />
               {!command.isDefault && (
                 <Action

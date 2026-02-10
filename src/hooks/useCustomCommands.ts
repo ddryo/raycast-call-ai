@@ -5,6 +5,7 @@ import {
   addCustomPrompt,
   updateCustomPrompt,
   deleteCustomPrompt,
+  reorderCustomPrompt,
   ensureDefaultPrompt,
 } from "../storage/custom-prompts";
 
@@ -43,11 +44,21 @@ export function useCustomCommands() {
     setCommands(updated);
   }, []);
 
+  const reorderCommand = useCallback(
+    async (id: string, direction: "up" | "down") => {
+      await reorderCustomPrompt(id, direction);
+      const updated = await loadCustomPrompts();
+      setCommands(updated);
+    },
+    [],
+  );
+
   return {
     commands,
     isLoading,
     addCommand,
     updateCommand,
     removeCommand,
+    reorderCommand,
   };
 }

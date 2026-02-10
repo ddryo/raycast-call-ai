@@ -111,6 +111,22 @@ export async function getCustomPrompt(
   return prompts.find((p) => p.id === id);
 }
 
+// カスタムプロンプトの順番を入れ替える
+export async function reorderCustomPrompt(
+  id: string,
+  direction: "up" | "down",
+): Promise<void> {
+  const prompts = await loadCustomPrompts();
+  const index = prompts.findIndex((p) => p.id === id);
+  if (index === -1) return;
+
+  const targetIndex = direction === "up" ? index - 1 : index + 1;
+  if (targetIndex < 0 || targetIndex >= prompts.length) return;
+
+  [prompts[index], prompts[targetIndex]] = [prompts[targetIndex], prompts[index]];
+  await saveCustomPrompts(prompts);
+}
+
 // カスタムプロンプトを名前で検索（大文字小文字を区別しない）
 export async function findCustomPromptByName(
   name: string,
