@@ -84,7 +84,7 @@ export function useConversation(options?: {
         const restoredThreads = await loadThreads();
 
         if (startNew || restoredThreads.length === 0) {
-          // 新しい会話で開始（ask-ai-new コマンド or 初回起動）
+          // 新しい会話で開始（call-ai-new コマンド or 初回起動）
           const newThread = createNewThread(initialCustomCommandId);
           const allThreads = [newThread, ...restoredThreads];
 
@@ -108,7 +108,7 @@ export function useConversation(options?: {
           await saveThreads(allThreads);
           await saveCurrentThreadId(newThread.id);
         } else {
-          // 前回の会話を復元（ask-ai コマンド）
+          // 前回の会話を復元（call-ai コマンド）
           const savedThreadId = await loadCurrentThreadId();
           const targetId =
             savedThreadId && restoredThreads.some((t) => t.id === savedThreadId)

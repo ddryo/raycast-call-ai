@@ -117,7 +117,7 @@ function MultiLineForm({
   );
 }
 
-export default function AskAI(
+export default function CallAI(
   props: LaunchProps<{ launchContext: { customCommandId?: string } }> & {
     startNew?: boolean;
     customCommandId?: string;

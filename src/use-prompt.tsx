@@ -11,7 +11,7 @@ import {
 } from "@raycast/api";
 import { createDeeplink } from "@raycast/utils";
 import { useEffect, useState } from "react";
-import AskAI from "./ask-ai";
+import CallAI from "./call-ai";
 import { useCustomCommands } from "./hooks/useCustomCommands";
 import { findCustomPromptByName } from "./storage/custom-prompts";
 import { CustomCommand } from "./types";
@@ -53,13 +53,13 @@ export default function UsePrompt(
   // 引数でプロンプト名が指定された場合: 解決後に直接 New Chat へ
   if (promptName) {
     if (!resolved) return null;
-    return <AskAI startNew customCommandId={customCommandId} />;
+    return <CallAI startNew customCommandId={customCommandId} />;
   }
 
   // 引数なし: 従来通りプロンプト一覧を表示
   async function handleSelect(command: CustomCommand) {
     await launchCommand({
-      name: "ask-ai",
+      name: "call-ai",
       type: LaunchType.UserInitiated,
       context: { customCommandId: command.id },
     });
@@ -83,7 +83,7 @@ export default function UsePrompt(
                 title="Create Quicklink"
                 shortcut={{ modifiers: ["cmd", "shift"], key: "l" }}
                 quicklink={{
-                  name: `Ask AI: ${command.name}`,
+                  name: `Call AI: ${command.name}`,
                   link: createDeeplink({
                     command: "use-prompt",
                     arguments: { promptName: command.name },

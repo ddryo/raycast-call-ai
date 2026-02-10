@@ -3,10 +3,10 @@ import { LocalStorage } from "@raycast/api";
 import { CustomCommand } from "../types";
 
 // LocalStorage キー定数
-const CUSTOM_PROMPTS_KEY = "ask-ai:custom-commands";
+const CUSTOM_PROMPTS_KEY = "call-ai:custom-commands";
 
 // デフォルトプロンプトID用のキー（初期生成済みフラグ）
-const DEFAULT_PROMPT_KEY = "ask-ai:default-command-id";
+const DEFAULT_PROMPT_KEY = "call-ai:default-command-id";
 
 /** デフォルトプロンプトが存在しなければ初期生成し、そのIDを返す */
 export async function ensureDefaultPrompt(): Promise<string> {

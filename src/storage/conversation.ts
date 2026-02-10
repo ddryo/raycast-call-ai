@@ -5,12 +5,12 @@ import { Message, Thread } from "../types";
 export const DEFAULT_THREAD_ID = "default";
 
 // LocalStorage キー定数
-const THREADS_KEY = "ask-ai:threads";
-const CURRENT_THREAD_KEY = "ask-ai:current-thread";
+const THREADS_KEY = "call-ai:threads";
+const CURRENT_THREAD_KEY = "call-ai:current-thread";
 
 // メッセージ用の LocalStorage キーを生成
 function getStorageKey(threadId: string): string {
-  return `ask-ai:messages:${threadId}`;
+  return `call-ai:messages:${threadId}`;
 }
 
 // メッセージを保存

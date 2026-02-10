@@ -3,7 +3,7 @@
 ## 1. 概要
 
 ### 目的
-Raycast 上で複数の AI プロバイダーを利用したチャットインターフェースを提供する拡張機能「ask-ai」を開発する。
+Raycast 上で複数の AI プロバイダーを利用したチャットインターフェースを提供する拡張機能「call-ai」を開発する。
 ランチャーから離れることなく AI との対話を完結させ、日常的な質問・作業支援を効率化する。
 
 ### 対象ユーザー
@@ -64,10 +64,10 @@ Raycast 上で複数の AI プロバイダーを利用したチャットイン�
 ### ディレクトリ構成
 
 ```
-ask-ai/
+call-ai/
 ├── src/
-│   ├── ask-ai.tsx              # メインコマンド（List + Detail UI）
-│   ├── ask-ai-new.tsx          # 新規会話で開始するラッパー
+│   ├── call-ai.tsx              # メインコマンド（List + Detail UI）
+│   ├── call-ai-new.tsx          # 新規会話で開始するラッパー
 │   ├── create-ai-prompt.tsx    # カスタムプロンプト作成フォーム
 │   ├── ai-prompts.tsx          # カスタムプロンプト一覧管理
 │   ├── services/
@@ -89,10 +89,10 @@ ask-ai/
 ### コンポーネント構成
 
 ```
-ask-ai.tsx（メインコマンド）
-  ├── AskAI(props: LaunchProps)  … デフォルトエクスポート。スレッド一体型 List + Detail UI
+call-ai.tsx（メインコマンド）
+  ├── CallAI(props: LaunchProps)  … デフォルトエクスポート。スレッド一体型 List + Detail UI
   │     ├── props:
-  │     │     ├── startNew?: boolean       … 新規会話で開始するか（ask-ai-new 経由）
+  │     │     ├── startNew?: boolean       … 新規会話で開始するか（call-ai-new 経由）
   │     │     └── launchContext?: { customCommandId?: string }
   │     │           └── カスタムプロンプト一覧からの起動時に customCommandId を受け取る
   │     ├── SearchBar 入力 → handleSend() でメッセージ送信
@@ -172,10 +172,10 @@ ask-ai.tsx（メインコマンド）
 #### 起動フロー
 1. コマンド起動 → `useConversation` が `isLoading = true` で初期化
 2. `loadThreads()` でスレッド一覧を復元
-3. `startNew = true`（ask-ai-new 経由 or launchContext あり）の場合:
+3. `startNew = true`（call-ai-new 経由 or launchContext あり）の場合:
    - 新規スレッドを作成（customCommandId が渡されていれば紐づけ）し先頭に追加
    - 全既存スレッドのメッセージを messageCache に復元
-4. `startNew = false`（通常の ask-ai 起動）の場合:
+4. `startNew = false`（通常の call-ai 起動）の場合:
    - `loadCurrentThreadId()` で前回のスレッドIDを復元
    - スレッドが0件の場合 → 新規スレッドを自動作成し永続化
    - `currentThreadId` が存在しない or スレッド一覧に該当がない場合 → 先頭スレッドにフォールバック
@@ -298,11 +298,11 @@ ask-ai.tsx（メインコマンド）
 
 | キー | 値の型 | 説明 |
 |------|--------|------|
-| `ask-ai:messages:{threadId}` | JSON string（Message[]） | スレッドごとのメッセージ配列 |
-| `ask-ai:threads` | JSON string（Thread[]） | スレッド一覧 |
-| `ask-ai:current-thread` | string | 現在選択中のスレッドID |
-| `ask-ai:custom-commands` | JSON string（CustomCommand[]） | カスタムプロンプト一覧 |
-| `ask-ai:default-command-id` | string | デフォルトプロンプトのID（初期生成済みフラグ） |
+| `call-ai:messages:{threadId}` | JSON string（Message[]） | スレッドごとのメッセージ配列 |
+| `call-ai:threads` | JSON string（Thread[]） | スレッド一覧 |
+| `call-ai:current-thread` | string | 現在選択中のスレッドID |
+| `call-ai:custom-commands` | JSON string（CustomCommand[]） | カスタムプロンプト一覧 |
+| `call-ai:default-command-id` | string | デフォルトプロンプトのID（初期生成済みフラグ） |
 
 ### Preferences 設定
 

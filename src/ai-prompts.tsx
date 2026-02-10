@@ -225,7 +225,7 @@ function EditCommandForm({
             title="Create Quicklink"
             shortcut={{ modifiers: ["cmd", "shift"], key: "l" }}
             quicklink={{
-              name: `Ask AI: ${command.name}`,
+              name: `Call AI: ${command.name}`,
               link: createDeeplink({
                 command: "use-prompt",
                 arguments: { promptName: command.name },
@@ -459,7 +459,7 @@ export default function AICommands(props: LaunchProps<{ launchContext?: { action
   /** カスタムプロンプトで会話を開始する */
   async function handleStartConversation(command: CustomCommand) {
     await launchCommand({
-      name: "ask-ai",
+      name: "call-ai",
       type: LaunchType.UserInitiated,
       context: { customCommandId: command.id },
     });
@@ -518,7 +518,7 @@ export default function AICommands(props: LaunchProps<{ launchContext?: { action
                 title="Create Quicklink"
                 shortcut={{ modifiers: ["cmd", "shift"], key: "l" }}
                 quicklink={{
-                  name: `Ask AI: ${command.name}`,
+                  name: `Call AI: ${command.name}`,
                   link: createDeeplink({
                     command: "use-prompt",
                     arguments: { promptName: command.name },
