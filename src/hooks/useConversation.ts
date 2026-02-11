@@ -368,9 +368,6 @@ export function useConversation(options?: {
         model: effectiveModel,
         reasoningEffort: effectiveReasoningEffort,
         systemPrompt,
-        onWebSearch: () => {
-          setStatusText("Web検索中...");
-        },
         onDelta: (textSoFar) => {
           // 最初のチャンク受信時にステータス表示を消す
           if (isFirstDelta) {
@@ -406,7 +403,7 @@ export function useConversation(options?: {
         saveTimer = null;
       }
 
-      // モデル名・Web検索フラグは content に埋め込まず、専用フィールドに保存
+      // モデル名は content に埋め込まず、専用フィールドに保存
       const assistantMessage: Message = {
         id: assistantId,
         threadId,
@@ -414,7 +411,6 @@ export function useConversation(options?: {
         content: result.content,
         createdAt: assistantCreatedAt,
         model: result.model,
-        usedWebSearch: result.usedWebSearch || undefined,
       };
 
       const finalMessages = [...nextMessages, assistantMessage];

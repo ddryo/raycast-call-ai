@@ -51,10 +51,9 @@ function buildConversationMarkdown(
     if (msg.role === "user") {
       return `\n\n**You**: ${msg.content}`;
     }
-    // assistant: model / usedWebSearch / interrupted フィールドからタグを組み立てて AI ラベルの横に表示
+    // assistant: model / interrupted フィールドからタグを組み立てて AI ラベルの横に表示
     const tags = [
       ...(msg.model ? [`\`${msg.model}\``] : []),
-      ...(msg.usedWebSearch ? ["`Web検索`"] : []),
       ...(msg.interrupted ? ["`中断`"] : []),
     ].join(" ");
     const interruptedSuffix = msg.interrupted ? "\n\n*...応答が中断されました*" : "";

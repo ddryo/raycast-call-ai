@@ -127,14 +127,12 @@ export function trimMessagesForContext(
 
 export interface ChatCompletionResult {
   content: string;
-  usedWebSearch?: boolean;
   model: string;
 }
 
 export async function createChatCompletion(
   messages: Message[],
   model?: string,
-  onWebSearch?: () => void,
   onDelta?: (textSoFar: string) => void,
 ): Promise<ChatCompletionResult> {
   const client = getClient();
@@ -166,19 +164,10 @@ export async function createChatCompletion(
     }),
   });
 
-  let usedWebSearch = false;
   let text = "";
   let resolvedModel = selectedModel;
 
   for await (const event of stream) {
-    if (
-      event.type === "response.output_item.added" &&
-      "item" in event &&
-      (event.item as { type: string }).type === "web_search_call"
-    ) {
-      usedWebSearch = true;
-      onWebSearch?.();
-    }
     if (event.type === "response.output_text.delta" && "delta" in event) {
       text += (event as { delta: string }).delta;
       onDelta?.(text);
@@ -189,5 +178,5 @@ export async function createChatCompletion(
     }
   }
 
-  return { content: text, usedWebSearch, model: resolvedModel };
+  return { content: text, model: resolvedModel };
 }

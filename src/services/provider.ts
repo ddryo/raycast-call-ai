@@ -56,7 +56,6 @@ export async function sendCompletion(
     model?: string;
     reasoningEffort?: string;
     systemPrompt?: string;
-    onWebSearch?: () => void;
     onDelta?: (textSoFar: string) => void;
   },
 ): Promise<ChatCompletionResult> {
@@ -64,7 +63,6 @@ export async function sendCompletion(
     return createChatCompletion(
       messages,
       options?.model,
-      options?.onWebSearch,
       options?.onDelta,
     );
   }
