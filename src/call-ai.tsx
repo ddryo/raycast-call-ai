@@ -53,7 +53,7 @@ function buildConversationMarkdown(
     }
     // assistant: model / interrupted フィールドからタグを組み立てて AI ラベルの横に表示
     const tags = [
-      ...(msg.model ? [`\`${msg.model}\``] : []),
+      ...(msg.model ? [`\`${msg.model.replace(/-\d{8}$|-\d{4}-\d{2}-\d{2}$/, "")}\``] : []),
       ...(msg.interrupted ? ["`中断`"] : []),
     ].join(" ");
     const interruptedSuffix = msg.interrupted ? "\n\n*...応答が中断されました*" : "";
