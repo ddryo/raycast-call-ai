@@ -4,11 +4,11 @@ Raycast 上で複数の AI プロバイダーを使えるチャット拡張機�
 
 ## プロバイダー
 
-| プロバイダー | 説明 | 認証方式 | 追加課金 |
-|-------------|------|---------|---------|
-| **OpenAI API** | OpenAI Responses API 直接呼び出し | API キー（Preferences） | API 従量課金 |
-| **Codex CLI** | OpenAI Codex CLI (`codex exec`) 経由 | ChatGPT アカウント（`codex login`） | Pro/Plus プラン範囲内 |
-| **Claude Code CLI** | Claude Code CLI (`claude -p`) 経由 | Claude サブスク（`setup-token`） | Pro/Max プラン範囲内 |
+| プロバイダー        | 説明                                 | 認証方式                            | 追加課金              |
+| ------------------- | ------------------------------------ | ----------------------------------- | --------------------- |
+| **OpenAI API**      | OpenAI Responses API 直接呼び出し    | API キー（Preferences）             | API 従量課金          |
+| **Codex CLI**       | OpenAI Codex CLI (`codex exec`) 経由 | ChatGPT アカウント（`codex login`） | Pro/Plus プラン範囲内 |
+| **Claude Code CLI** | Claude Code CLI (`claude -p`) 経由   | Claude サブスク（`setup-token`）    | Pro/Max プラン範囲内  |
 
 ## セットアップ
 
@@ -36,9 +36,10 @@ npm run dev
 1. Raycast の拡張機能設定で **OpenAI API Key** を入力
 2. 追加設定なし
 
-拡張機能の設定画面は、コマンド画面の左下にある歯車アイコンから開けます。
+拡張機能の設定画面は、Raycastから検索中の右下のアクションメニューからすぐに飛べます。もしくは、コマンド画面の左下から開けます。
 
 ![拡張機能設定への遷移](assets/screenshots/configure-extension.png)
+![拡張機能設定への遷移](assets/screenshots/configure-extension_r.png)
 
 ![拡張機能設定画面](assets/screenshots/extension-setting.png)
 
@@ -58,19 +59,21 @@ npm run dev
    ```bash
    claude setup-token
    ```
+
    - 対話式プロンプトに従い、Claude のサブスクリプション認証を行う
    - トークンは **macOS Keychain** に暗号化保存される
    - Claude Pro/Max プランが必要（追加の API 課金は発生しない）
 3. プリセット設定で **Provider** を「Claude Code CLI」に変更
 
 > **CLI 利用時の注意:**
+>
 > - CLI 経由で呼び出す場合、`~/.claude/CLAUDE.md` などの設定ファイルが自動的に読み込まれます。プリセットのシステムプロンプトと内容が重複しないようご注意ください。
 > - Web 検索の利用可否は CLI 側の設定に依存します。Codex CLI ではデフォルトで有効ですが、Claude Code CLI では `.claude/settings.json` のパーミッション設定で明示的に許可する必要があります。
 
 ### 3. Raycast Preferences
 
-| 設定項目 | 説明 | 必須 |
-|----------|------|------|
+| 設定項目       | 説明                                 | 必須              |
+| -------------- | ------------------------------------ | ----------------- |
 | OpenAI API Key | OpenAI API キー（OpenAI API 使用時） | OpenAI API 時のみ |
 
 > Provider・Model・Reasoning Effort はプリセット（Manage Presets）で個別に設定します。
@@ -140,6 +143,7 @@ npm run dev
    ![Quicklink 確認ダイアログ](assets/screenshots/quicklink-dialog.png)
 
 > **Quicklink 利用時の注意:**
+>
 > - プリセットを削除しても、作成済みの Quicklink は自動では削除されません。不要になった場合は手動で Quicklink を削除してください。
 > - プリセットのタイトルを変更した場合も、Quicklink の再作成が必要です。
 
@@ -173,56 +177,56 @@ security delete-generic-password -s "claude-code"
 
 ## コマンド一覧
 
-| コマンド | 説明 |
-|----------|------|
-| **Chat History** | 会話履歴を表示し、既存スレッドで AI とチャット |
-| **New Chat** | 新しいスレッドを作成して AI とチャットを開始 |
-| **Use Preset** | プリセットを選んで会話を開始（引数でプリセット名を直接指定可） |
-| **Manage Presets** | プリセットの作成・編集・削除・並べ替え |
+| コマンド           | 説明                                                           |
+| ------------------ | -------------------------------------------------------------- |
+| **Chat History**   | 会話履歴を表示し、既存スレッドで AI とチャット                 |
+| **New Chat**       | 新しいスレッドを作成して AI とチャットを開始                   |
+| **Use Preset**     | プリセットを選んで会話を開始（引数でプリセット名を直接指定可） |
+| **Manage Presets** | プリセットの作成・編集・削除・並べ替え                         |
 
 ## アクション（ショートカットキー）
 
 ### Chat History / New Chat
 
-| アクション | ショートカット | 説明 |
-|---|---|---|
-| Send Message | `↵` | 入力テキストを AI に送信 |
-| Copy Last Response | `⌘⇧C` | 最後の AI 応答をクリップボードにコピー（応答がある場合のみ） |
-| Multiline Input | `⌘L` | 複数行入力フォームを開く |
-| New Conversation | `⌘N` | 新規スレッドを作成 |
-| Clear Conversation | `⌘⇧⌫` | 現在のスレッドの会話をクリア |
-| Delete Conversation | `⌃X` | スレッドを削除 |
-| Delete All Conversations | `⌃⇧X` | 全スレッドを削除（2件以上時のみ） |
+| アクション               | ショートカット | 説明                                                         |
+| ------------------------ | -------------- | ------------------------------------------------------------ |
+| Send Message             | `↵`            | 入力テキストを AI に送信                                     |
+| Copy Last Response       | `⌘⇧C`          | 最後の AI 応答をクリップボードにコピー（応答がある場合のみ） |
+| Multiline Input          | `⌘L`           | 複数行入力フォームを開く                                     |
+| New Conversation         | `⌘N`           | 新規スレッドを作成                                           |
+| Clear Conversation       | `⌘⇧⌫`          | 現在のスレッドの会話をクリア                                 |
+| Delete Conversation      | `⌃X`           | スレッドを削除                                               |
+| Delete All Conversations | `⌃⇧X`          | 全スレッドを削除（2件以上時のみ）                            |
 
 #### Multiline Input フォーム
 
-| アクション | ショートカット | 説明 |
-|---|---|---|
-| Send Message | `⌘↵` | 入力テキストを送信 |
+| アクション   | ショートカット | 説明               |
+| ------------ | -------------- | ------------------ |
+| Send Message | `⌘↵`           | 入力テキストを送信 |
 
 ### Use Preset
 
-| アクション | ショートカット | 説明 |
-|---|---|---|
-| Start Conversation | `↵` | 選択したプリセットで会話を開始 |
-| Create Quicklink | `⌘⇧L` | 選択プリセットへの Quicklink を作成 |
-| Manage Prompts | − | Manage Presets コマンドを起動 |
+| アクション         | ショートカット | 説明                                |
+| ------------------ | -------------- | ----------------------------------- |
+| Start Conversation | `↵`            | 選択したプリセットで会話を開始      |
+| Create Quicklink   | `⌘⇧L`          | 選択プリセットへの Quicklink を作成 |
+| Manage Prompts     | −              | Manage Presets コマンドを起動       |
 
 ### Manage Presets
 
-| アクション | ショートカット | 説明 |
-|---|---|---|
-| Edit Prompt | `↵` | 編集フォームを開く |
-| Start Conversation | `⌘↵` | そのプリセットで会話を開始 |
-| Create Quicklink | `⌘⇧L` | Quicklink を作成 |
-| Create Prompt | `⌘N` | 新規作成フォームを開く |
-| Move Up | `⌘⇧↑` | プリセットを上に移動 |
-| Move Down | `⌘⇧↓` | プリセットを下に移動 |
-| Delete Prompt | `⌃X` | プリセットを削除（デフォルトプリセット以外） |
+| アクション         | ショートカット | 説明                                         |
+| ------------------ | -------------- | -------------------------------------------- |
+| Edit Prompt        | `↵`            | 編集フォームを開く                           |
+| Start Conversation | `⌘↵`           | そのプリセットで会話を開始                   |
+| Create Quicklink   | `⌘⇧L`          | Quicklink を作成                             |
+| Create Prompt      | `⌘N`           | 新規作成フォームを開く                       |
+| Move Up            | `⌘⇧↑`          | プリセットを上に移動                         |
+| Move Down          | `⌘⇧↓`          | プリセットを下に移動                         |
+| Delete Prompt      | `⌃X`           | プリセットを削除（デフォルトプリセット以外） |
 
 #### 編集 / 作成フォーム
 
-| アクション | ショートカット | 説明 |
-|---|---|---|
-| Update Prompt / Create Prompt | `⌘↵` | フォーム内容を保存 |
-| Create Quicklink | `⌘⇧L` | Quicklink を作成（編集フォームのみ） |
+| アクション                    | ショートカット | 説明                                 |
+| ----------------------------- | -------------- | ------------------------------------ |
+| Update Prompt / Create Prompt | `⌘↵`           | フォーム内容を保存                   |
+| Create Quicklink              | `⌘⇧L`          | Quicklink を作成（編集フォームのみ） |
