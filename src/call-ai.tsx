@@ -51,15 +51,17 @@ function buildConversationMarkdown(
     if (msg.role === "user") {
       return `\n\n**You**: ${msg.content}`;
     }
-    // assistant: model / usedWebSearch フィールドからタグを組み立てて AI ラベルの横に表示
+    // assistant: model / usedWebSearch / interrupted フィールドからタグを組み立てて AI ラベルの横に表示
     const tags = [
       ...(msg.model ? [`\`${msg.model}\``] : []),
       ...(msg.usedWebSearch ? ["`Web検索`"] : []),
+      ...(msg.interrupted ? ["`中断`"] : []),
     ].join(" ");
+    const interruptedSuffix = msg.interrupted ? "\n\n*...応答が中断されました*" : "";
     if (tags) {
-      return `**AI** ${tags}\n\n${msg.content}`;
+      return `**AI** ${tags}\n\n${msg.content}${interruptedSuffix}`;
     }
-    return `\n\n**AI**: ${msg.content}`;
+    return `\n\n**AI**: ${msg.content}${interruptedSuffix}`;
   });
   // 質問(You)→回答(AI)をセットにし、セット間のみ区切り線を入れる
   const lines = parts.reduce((acc, text, i) => {

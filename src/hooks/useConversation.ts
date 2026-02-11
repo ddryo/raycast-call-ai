@@ -195,6 +195,13 @@ export function useConversation(options?: {
       }
     }
 
+    // ユーザーメッセージを即座に永続化（ウィンドウが閉じても消えないようにする）
+    try {
+      await saveMessages(threadId, nextMessages);
+    } catch {
+      // 保存失敗は致命的ではないので続行
+    }
+
     // カスタムコマンドの取得（Thread に customCommandId がある場合、なければデフォルトにフォールバック）
     const currentThread = threadsRef.current.find((t) => t.id === threadId);
     const customCmdId = currentThread?.customCommandId;
@@ -259,6 +266,7 @@ export function useConversation(options?: {
       // ストリーミング表示用の仮メッセージを先に追加
       const assistantId = randomUUID();
       const assistantCreatedAt = new Date().toISOString();
+      // UI用: interrupted なし（表示に影響させない）
       const streamingMessages = [
         ...nextMessages,
         {
@@ -273,12 +281,52 @@ export function useConversation(options?: {
       if (currentThreadIdRef.current === threadId) {
         setMessages(streamingMessages);
       }
+      // ストレージ用: interrupted: true で保存（ウィンドウが閉じても部分レスポンスが残る）
+      try {
+        const storageMessages = [
+          ...nextMessages,
+          {
+            id: assistantId,
+            threadId,
+            role: "assistant" as const,
+            content: "",
+            createdAt: assistantCreatedAt,
+            interrupted: true,
+          },
+        ];
+        await saveMessages(threadId, storageMessages);
+      } catch {
+        // 続行
+      }
 
       let lastFlush = 0;
       let latestText = "";
       let flushTimer: ReturnType<typeof setTimeout> | null = null;
       let isFirstDelta = true;
       const THROTTLE_MS = 150;
+
+      // ストリーミング中の部分レスポンスを定期的に永続化する（3秒間隔）
+      let lastSave = Date.now();
+      const SAVE_INTERVAL_MS = 3000;
+      let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+      const flushToStorage = () => {
+        const toSave = [
+          ...nextMessages,
+          {
+            id: assistantId,
+            threadId,
+            role: "assistant" as const,
+            content: latestText,
+            createdAt: assistantCreatedAt,
+            interrupted: true,
+          },
+        ];
+        saveMessages(threadId, toSave).catch(() => {
+          // サイレント失敗
+        });
+        lastSave = Date.now();
+      };
 
       const flushToUI = () => {
         const updated = [
@@ -296,6 +344,24 @@ export function useConversation(options?: {
           setMessages(updated);
         }
         lastFlush = Date.now();
+
+        // 定期保存: 前回の保存から SAVE_INTERVAL_MS 経過していたら保存
+        const now = Date.now();
+        if (now - lastSave >= SAVE_INTERVAL_MS) {
+          if (saveTimer) {
+            clearTimeout(saveTimer);
+            saveTimer = null;
+          }
+          flushToStorage();
+        } else if (!saveTimer) {
+          saveTimer = setTimeout(
+            () => {
+              saveTimer = null;
+              flushToStorage();
+            },
+            SAVE_INTERVAL_MS - (now - lastSave),
+          );
+        }
       };
 
       const result = await sendCompletion(effectiveProvider, trimmed, {
@@ -334,6 +400,10 @@ export function useConversation(options?: {
       if (flushTimer) {
         clearTimeout(flushTimer);
         flushTimer = null;
+      }
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+        saveTimer = null;
       }
 
       // モデル名・Web検索フラグは content に埋め込まず、専用フィールドに保存

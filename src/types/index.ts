@@ -13,6 +13,7 @@ export interface Message {
   createdAt: string; // ISO 8601
   model?: string; // 応答に使用されたモデル名（assistant のみ）
   usedWebSearch?: boolean; // Web検索が使用されたか（assistant のみ）
+  interrupted?: boolean; // ストリーミング中断フラグ（assistant のみ）
 }
 
 // スレッド（Phase 2 で使用）
