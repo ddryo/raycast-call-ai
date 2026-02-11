@@ -14,6 +14,8 @@ Raycast 上で複数の AI プロバイダーを使えるチャット拡張機�
 
 ### 1. 拡張機能のインストール
 
+リポジトリをクローン（または ZIP ダウンロード）し、依存パッケージをインストールします。
+
 ```bash
 git clone <this-repo>
 cd raycast-call-ai
@@ -21,12 +23,24 @@ npm install
 npm run dev
 ```
 
+`npm run dev` を実行すると拡張機能がビルドされ、Raycast に開発モードで読み込まれます。Raycast 上で「Call AI」が使えるようになっていることを確認してください。
+
+![Raycast からコマンドを検索](assets/screenshots/search-command.png)
+
+> **Note:** `npm run dev` はファイル変更を監視し続けるため、ターミナルのプロセスが動作中の間のみ拡張機能が有効になります。常用する場合は `npm run build` でビルドしておくと、プロセスを起動し続ける必要がなくなります。
+
 ### 2. プロバイダー別の初期設定
 
 #### OpenAI API（デフォルト）
 
 1. Raycast の拡張機能設定で **OpenAI API Key** を入力
 2. 追加設定なし
+
+拡張機能の設定画面は、コマンド画面の左下にある歯車アイコンから開けます。
+
+![拡張機能設定への遷移](assets/screenshots/configure-extension.png)
+
+![拡張機能設定画面](assets/screenshots/extension-setting.png)
 
 #### Codex CLI
 
@@ -49,6 +63,10 @@ npm run dev
    - Claude Pro/Max プランが必要（追加の API 課金は発生しない）
 3. プリセット設定で **Provider** を「Claude Code CLI」に変更
 
+> **CLI 利用時の注意:**
+> - CLI 経由で呼び出す場合、`~/.claude/CLAUDE.md` などの設定ファイルが自動的に読み込まれます。プリセットのシステムプロンプトと内容が重複しないようご注意ください。
+> - Web 検索の利用可否は CLI 側の設定に依存します。Codex CLI ではデフォルトで有効ですが、Claude Code CLI では `.claude/settings.json` のパーミッション設定で明示的に許可する必要があります。
+
 ### 3. Raycast Preferences
 
 | 設定項目 | 説明 | 必須 |
@@ -56,6 +74,74 @@ npm run dev
 | OpenAI API Key | OpenAI API キー（OpenAI API 使用時） | OpenAI API 時のみ |
 
 > Provider・Model・Reasoning Effort はプリセット（Manage Presets）で個別に設定します。
+
+## 使い方
+
+### プリセットの設定
+
+**Manage Presets** コマンドから、使用したい AI プロバイダー・モデル・システムプロンプトの組み合わせをプリセットとして登録できます。
+
+![Manage Presets コマンド](assets/screenshots/manage-preset.png)
+
+初期状態では「デフォルト」プリセットが 1 つだけ用意されています。
+
+![デフォルトプリセットの編集画面](assets/screenshots/default-preset.png)
+
+プロバイダー・モデル・システムプロンプトなどを自由にカスタマイズしてください。
+
+### 会話を始める
+
+**New Chat** コマンドで、新しいチャットスレッドを作成できます。デフォルトプリセットの設定が適用されます。
+
+![New Chat コマンド](assets/screenshots/new-chat.png)
+
+### プリセットを指定して会話する
+
+登録したプリセットは、以下のいずれかの方法で呼び出せます。
+
+#### 方法 1: Use Preset コマンドから選択
+
+**Use Preset** コマンドを開くと、登録済みのプリセット一覧が表示されます。使いたいプリセットを選択して会話を開始できます。
+
+![Use Preset コマンドのプリセット一覧](assets/screenshots/use-preset.png)
+
+#### 方法 2: チャット画面のドロップダウンで切り替え
+
+チャット画面の右上にあるドロップダウンから、会話中でもプリセットを切り替えることができます。
+
+![チャット画面のプリセット選択ドロップダウン](assets/screenshots/select-preset-dropdown.png)
+
+#### 方法 3: Use Preset コマンドに引数を指定
+
+**Use Preset** コマンドにプリセット名を引数として渡すことで、一覧画面を経由せずに直接プリセットを呼び出すことも可能です。
+
+![Use Preset に引数を指定して呼び出し](assets/screenshots/use-preset-by-args.png)
+
+### Quicklink でプリセットを独立コマンド化する
+
+よく使うプリセットを Raycast の **Quicklink** として登録すると、プリセットごとに独立したコマンドのように呼び出せるようになります。
+
+#### Quicklink の作成手順
+
+1. **Use Preset** のプリセット一覧画面、または **Manage Presets** のプリセット編集画面で **Create Quicklink** アクション（`⌘⇧L`）を実行します。
+
+   ![Create Quicklink アクション](assets/screenshots/create-quicklink.png)
+
+2. Quicklink の作成フォームが表示されるので、そのまま **Save** してください。
+
+   ![Quicklink 作成フォーム](assets/screenshots/create-quicklink-form.png)
+
+3. 保存すると、Raycast のコマンド検索からプリセットを直接呼び出せるようになります。
+
+   ![Quicklink からプリセットを呼び出し](assets/screenshots/call-quicklink.png)
+
+4. 初回呼び出し時のみ確認ダイアログが表示されます。**Always Allow** を選択すると、以降はダイアログなしで起動できます。
+
+   ![Quicklink 確認ダイアログ](assets/screenshots/quicklink-dialog.png)
+
+> **Quicklink 利用時の注意:**
+> - プリセットを削除しても、作成済みの Quicklink は自動では削除されません。不要になった場合は手動で Quicklink を削除してください。
+> - プリセットのタイトルを変更した場合も、Quicklink の再作成が必要です。
 
 ## 認証トークンの解除
 
