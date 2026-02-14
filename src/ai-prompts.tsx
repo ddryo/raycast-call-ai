@@ -55,6 +55,7 @@ const MODEL_OPTIONS_BY_PROVIDER: Record<string, { title: string; value: string }
   ],
   "codex-cli": [
     { title: "デフォルト（CLI のローカル設定）", value: "" },
+    { title: "GPT-5.3 Codex Spark", value: "gpt-5.3-codex-spark" },
     { title: "GPT-5.3 Codex", value: "gpt-5.3-codex" },
     { title: "GPT-5.2 Codex", value: "gpt-5.2-codex" },
     { title: "GPT-5.2", value: "gpt-5.2" },
