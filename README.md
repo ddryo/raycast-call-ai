@@ -58,7 +58,15 @@ OpenAI API を使用する場合は、Raycast の拡張機能設定画面から 
 Codex CLI や Claude Code CLI を使用する場合は、あらかじめ CLI をインストールしておく必要があります。
 
 - **Codex CLI**: [公式手順](https://github.com/openai/codex)に従ってインストールし、`codex login` で認証
-- **Claude Code CLI**: [公式手順](https://docs.anthropic.com/en/docs/claude-code)に従ってインストールし、`claude setup-token` で長期トークンを設定（Claude Pro/Max プランが必要）
+- **Claude Code CLI**: [公式手順](https://docs.anthropic.com/en/docs/claude-code)に従ってインストール（Claude Pro/Max プランが必要）し、以下の手順でトークンを設定
+
+```bash
+# 1. 長期トークンを取得
+claude setup-token
+
+# 2. 表示されたトークンをシェルの環境変数に設定（~/.zshrc 等に追記）
+export CLAUDE_CODE_OAUTH_TOKEN="取得したトークン"
+```
 
 > **CLI 利用時の注意:**
 >
