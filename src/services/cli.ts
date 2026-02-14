@@ -285,22 +285,9 @@ function spawnClaudeStreaming(
 /**
  * Codex CLI の stdout から回答テキストを抽出する
  *
- * codex exec の出力形式:
- * ```
- * codex
- * 4
- * tokens used
- * 1,565
- * 4       ← 回答テキスト（最終行）
- * ```
+ * codex exec はレスポンス全文をそのまま stdout に出力する
  */
 function parseCodexOutput(stdout: string): string {
-  const lines = stdout.trimEnd().split("\n");
-  // 空でない最終行を回答として返す
-  for (let i = lines.length - 1; i >= 0; i--) {
-    const line = lines[i].trim();
-    if (line) return line;
-  }
   return stdout.trim();
 }
 
